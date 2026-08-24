@@ -2021,89 +2021,83 @@ const pendingOrders = await shopee.getOrders({
     date: "2026-04-15",
     category: "Security",
     availableIn: ["vi"],
-    title: { en: "Handling Shopee and TikTok Shop webhook pushes safely", vi: "Xử lý Webhook Push từ Shopee và TikTok Shop một cách an toàn" },
-    readTime: { en: "7 min read", vi: "7 phút đọc" },
-    description: { en: "Anti-forgery, HMAC-SHA256 signature verification, and keeping webhook response times low.", vi: "Giải thích cơ chế chống giả mạo request, xác thực chữ ký signature HMAC-SHA256 và tối ưu hóa thời gian phản hồi webhook." },
+    title: { en: "Handling Shopee and TikTok Shop webhook pushes safely", vi: "Chữ ký webhook Shopee/TikTok Shop sai — dù key và thuật toán đều đúng" },
+    readTime: { en: "4 min read", vi: "4 phút đọc" },
+    description: { en: "HMAC signature verification fails for a reason that has nothing to do with the key or the algorithm: one JSON parse-and-reserialize step, done before signature check, is enough to change every byte.", vi: "Xác thực chữ ký HMAC fail vì một lý do chẳng liên quan gì tới key hay thuật toán: chỉ cần parse rồi serialize lại JSON một lần trước khi kiểm chữ ký là đủ đổi hết byte." },
     content: sameForBothLocales(() => (
       <div className="font-serif-body text-[15px] text-zinc-800 leading-relaxed text-justify space-y-6">
         <p>
-          Khi xây dựng hệ thống quản lý e-commerce, việc đồng bộ đơn hàng theo thời gian thực (real-time) là yếu tố sống còn. Cơ chế <strong>Push Mechanism (Webhook)</strong> được sử dụng để sàn đẩy thông báo về máy chủ của bạn mỗi khi đơn hàng thay đổi trạng thái.
-        </p>
-        <p>
-          Tuy nhiên, việc mở một cổng API công khai để nhận dữ liệu từ Internet mang lại nhiều rủi ro bảo mật nghiêm trọng. Kẻ xấu có thể gửi payload giả để đánh dấu đơn hàng đã thanh toán hoặc đã hủy nhằm trục lợi.
+          Shopee ký mỗi webhook bằng <strong>HMAC-SHA256</strong> trên chuỗi
+          <code> callback_url + request_body</code>. Bên nhận tính lại đúng công thức đó
+          bằng đúng <code>partnerKey</code>, và chữ ký vẫn sai. Không phải do key sai, không
+          phải do thuật toán sai — mà do body đưa vào hàm HMAC không còn là body Shopee đã
+          ký, dù JSON &ldquo;nhìn&rdquo; vẫn giống hệt.
         </p>
 
-        <h3 className="font-sans font-bold text-lg text-black pt-4">1. Cơ chế Xác Thực Signature</h3>
+        <h3 className="font-sans font-bold text-lg text-black pt-4">1. Tái hiện — 5 dòng</h3>
         <p>
-          Shopee gửi thông điệp webhook dưới dạng HTTP POST, kèm theo chữ ký mã hóa nằm trong header <code>Authorization</code>. Chữ ký này được tạo ra bằng thuật toán <strong>HMAC-SHA256</strong> sử dụng <code>partnerKey</code> để ký tên trên tổ hợp:
-        </p>
-        <div className="bg-zinc-100 p-4 rounded font-mono text-xs text-zinc-800 border border-zinc-200">
-          signature = HMAC-SHA256(partnerKey, absolute_callback_url + raw_request_body)
-        </div>
-
-        <h3 className="font-sans font-bold text-lg text-black pt-4">2. Quy Tắc Vàng: Nhận Raw Body</h3>
-        <blockquote className="border-l-4 border-red-700 pl-4 italic text-zinc-600 text-sm">
-          Cảnh báo: Bạn phải đọc req.body dưới dạng buffer thô (Raw Body). Nếu sử dụng middleware express.json() làm định dạng mặc định trước khi kiểm tra chữ ký, các trường trong payload sẽ bị sắp xếp lại thứ tự khóa (key sorting) lúc parse JSON, khiến việc tính toán hash SHA256 bị sai lệch 100%!
-        </blockquote>
-
-        <p>
-          Dưới đây là cách cấu hình route nhận webhook với Express thô:
+          HMAC là hàm băm trên <strong>chuỗi byte chính xác</strong>. Parse JSON rồi
+          serialize lại là một phép biến đổi <em>tưởng như</em> không đổi gì — nhưng không
+          bảo toàn byte gốc:
         </p>
         <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`import express from "express";
-import { ShopeeModule } from "shopee-api-client";
+{`const raw = '{"code":1,"amount":10.50,"shop_id":123}'; // body Shopee thực sự đã ký
+const reparsed = JSON.stringify(JSON.parse(raw));         // sau khi qua express.json()
 
-const app = express();
-const shopee = new ShopeeModule({
-  partnerId: Number(process.env.SHOPEE_PARTNER_ID),
-  partnerKey: process.env.SHOPEE_PARTNER_KEY!,
-});
+console.log(raw === reparsed);  // false
+console.log(raw);               // {"code":1,"amount":10.50,"shop_id":123}
+console.log(reparsed);          // {"code":1,"amount":10.5,"shop_id":123}  <- 10.50 → 10.5`}
+        </pre>
+        <p>
+          <code>10.50</code> và <code>10.5</code> cùng một giá trị số, nhưng là hai chuỗi
+          byte khác nhau. HMAC không biết gì về &ldquo;giá trị JSON&rdquo; — nó chỉ băm
+          byte. Hai chuỗi khác nhau → hai chữ ký khác nhau. Chạy đoạn trên với bất kỳ
+          <code> crypto.createHmac(&ldquo;sha256&rdquo;, key)</code> nào, kết quả luôn lệch.
+        </p>
 
-// Sử dụng express.raw để giữ nguyên chuỗi body thô gửi sang
-app.post(
+        <h3 className="font-sans font-bold text-lg text-black pt-4">2. Vì sao lỗi này dễ lọt qua review</h3>
+        <p>
+          Không ai chủ động viết code &ldquo;parse rồi serialize lại trước khi verify&rdquo;.
+          Nó xảy ra ngầm: một middleware <code>express.json()</code> gắn ở tầng app (thường để
+          xử lý các route khác) chạy <em>trước</em> route webhook trong chuỗi middleware của
+          Express. Tới lúc code verify chữ ký chạm vào <code>req.body</code>, body đã bị parse
+          thành object — byte gốc <strong>không thể lấy lại được</strong>, dù bạn có
+          <code> JSON.stringify</code> lại cẩn thận cỡ nào.
+        </p>
+        <blockquote className="border-l-4 border-red-700 pl-4 italic text-zinc-600 text-sm">
+          Không có exception, không có log cảnh báo — signature verify chỉ trả về{" "}
+          <code>false</code>. Nhìn qua giống như key cấu hình sai, nên phần lớn thời gian debug
+          đổ vào việc kiểm tra lại <code>partnerKey</code>, thứ chưa từng sai.
+        </blockquote>
+
+        <h3 className="font-sans font-bold text-lg text-black pt-4">3. Chữa — verify trước khi bất kỳ ai được parse</h3>
+        <p>
+          Route webhook phải nhận <strong>Buffer thô</strong>, verify chữ ký trên buffer đó,
+          rồi mới <code>JSON.parse</code> để xử lý — và <code>express.raw()</code> phải đứng
+          trước mọi <code>express.json()</code> toàn cục trên cùng đường dẫn này:
+        </p>
+        <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
+{`app.post(
   "/shopee/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    const callbackUrl = "https://your-app.com/shopee/webhook";
+  express.raw({ type: "application/json" }),   // giữ nguyên byte, KHÔNG parse
+  (req, res) => {
     const signature = req.header("authorization") ?? "";
-
-    // Thực hiện verify chữ ký thô
     const isValid = shopee.verifyPushSignature(
       callbackUrl,
-      req.body, // req.body ở đây là Buffer thô
-      signature
+      req.body,      // Buffer thô — đúng byte Shopee đã ký
+      signature,
     );
+    if (!isValid) return res.status(401).end();
 
-    if (!isValid) {
-      console.warn("Cảnh báo: Webhook signature không hợp lệ!");
-      return res.status(401).end();
-    }
-
-    // Sau khi verify thành công, parse JSON để xử lý dữ liệu
-    const payload = shopee.parsePushPayload(req.body);
-    console.log("Xử lý sự kiện code:", payload.code);
-
+    const payload = shopee.parsePushPayload(req.body); // parse SAU khi verify xong
     return res.status(204).end();
-  }
+  },
 );`}
         </pre>
-
-        <h3 className="font-sans font-bold text-lg text-black pt-4">3. Chiến thuật phản hồi nhanh: &ldquo;Respond Fast, Fetch Later&rdquo;</h3>
         <p>
-          Shopee quy định thời gian timeout cho một request webhook là <strong>3 giây</strong>. Nếu server của bạn xử lý quá chậm (ví dụ: thực hiện ghi đè DB nhiều bảng, kiểm tra logic phức tạp), Shopee sẽ đánh giá request thất bại và liên tục gửi lại webhook (Retry theo chu kỳ 300 giây, 1800 giây, 10800 giây).
-        </p>
-        <p>
-          Để giải quyết vấn đề này, hãy áp dụng mô hình kiến trúc bất đồng bộ:
-        </p>
-        <ol className="list-decimal pl-5 space-y-2 text-sm text-zinc-700">
-          <li><strong>Xác thực chữ ký lập tức:</strong> Thực hiện verify signature thô ngay khi nhận request.</li>
-          <li><strong>Phản hồi HTTP 200/204:</strong> Trả về phản hồi thành công ngay lập tức để ngắt kết nối với Shopee.</li>
-          <li><strong>Xử lý hàng đợi (Background Worker):</strong> Đẩy dữ liệu event vào một Message Queue (Redis, RabbitMQ) hoặc gọi hàm xử lý bất đồng bộ để Worker chạy ngầm, gọi ngược lên API Shopee lấy dữ liệu đơn hàng mới nhất và cập nhật vào DB.</li>
-        </ol>
-
-        <h3 className="font-sans font-bold text-lg text-black pt-4">4. Kết luận</h3>
-        <p>
-          Bằng cách kết hợp giữa việc kiểm tra <strong>Signature</strong> thô và thiết kế mô hình <strong>Bất đồng bộ</strong>, bạn sẽ xây dựng được một cổng tích hợp Webhook an toàn, chịu tải tốt, và không bao giờ bị nghẽn hay trùng lặp dữ liệu đơn hàng từ các sàn.
+          Một dòng quy tắc: <strong>ký kiểm tra trên byte, parse chỉ diễn ra sau khi chữ ký
+          đã đúng.</strong> Đảo hai bước đó — dù chỉ vì một middleware toàn cục vô tình đứng
+          trước — signature luôn fail, và không log nào nói cho bạn biết vì sao.
         </p>
       </div>
     )),
