@@ -270,6 +270,98 @@ Nhấp vào **Save and Deploy**. Cloudflare sẽ mất khoảng 1-2 phút để 
 
 ---
 
+## Trang quản trị bài viết (`/admin`)
+
+Ẩn bài, ghim bài và đổi thứ tự hiển thị **ngay trên pkmm.online**, không cần build
+lại và không cần deploy lại. Sửa tiêu đề hay nội dung thì vẫn phải sửa
+`src/data/blog.tsx` rồi deploy — xem "Vì sao không sửa nội dung ở đây" bên dưới.
+
+### Kiến trúc
+
+Site vẫn là `output: "export"` (tĩnh hoàn toàn). Phần động do một Worker script
+đứng trước assets đảm nhiệm:
+
+```
+Trình duyệt
+   |
+   +-- /api/admin/*  -> Worker: đăng nhập, đọc/ghi metadata trong KV
+   +-- /  /vi        -> Worker: gỡ thẻ bài bị ẩn + chèn CSS `order` cho phần ghim
+   +-- /blog/<slug>  -> Worker: trả 404 nếu bài đang ẩn
+   +-- /rss.xml      -> Worker: lọc bỏ bài ẩn
+   +-- /sitemap.xml  -> Worker: lọc bỏ bài ẩn
+   +-- mọi thứ khác  -> đi thẳng tới Asset Worker, không qua Worker
+```
+
+Chỉ các đường dẫn khai trong `assets.run_worker_first` mới đi qua Worker.
+
+**Ẩn là ẩn thật:** bài bị gỡ khỏi HTML, khỏi RSS, khỏi sitemap, và URL của nó trả
+404 — không phải chỉ bị giấu bằng CSS.
+
+### Một chi tiết dễ vấp: hydration
+
+Gỡ thẻ bài khỏi HTML là **chưa đủ**. Dữ liệu bài nằm trong bundle JS, nên sau khi
+React hydrate nó sẽ **chèn thẻ đó trở lại DOM**. Đo được đúng như vậy trong lúc
+làm.
+
+Vì thế Worker chèn thêm `window.__PKMM_HIDDEN__` vào `<head>` (trước script của
+Next), và `HomePage` đọc danh sách đó qua `src/lib/post-visibility.ts` để render ra
+kết quả giống hệt HTML mà Worker trả về. Sửa một phía mà quên phía kia là bài ẩn sẽ
+hiện lại.
+
+Phần **thứ tự** thì không gặp vấn đề này: nó dùng CSS `order`, không đụng tới DOM.
+
+### Cài đặt lần đầu
+
+```bash
+# 1. Deploy — lần đầu wrangler tự tạo KV namespace và ghi id vào wrangler.jsonc
+npm run deploy
+
+# 2. Đặt mật khẩu đăng nhập (wrangler sẽ hỏi, không gõ vào dòng lệnh)
+npx wrangler secret put ADMIN_PASSWORD
+
+# 3. Đặt khoá ký cookie phiên — dùng một chuỗi ngẫu nhiên dài, KHÔNG trùng mật khẩu
+npx wrangler secret put SESSION_SECRET
+
+# 4. Deploy lại để Worker nhận secret
+npm run deploy
+```
+
+Sau bước 1, **commit lại `wrangler.jsonc`** vì wrangler đã ghi `id` của KV vào đó.
+
+Chưa đặt secret thì `/api/admin/*` trả 503 kèm thông báo rõ — site công khai vẫn
+chạy bình thường.
+
+### Chạy thử ở local
+
+```bash
+npm run build && npx wrangler dev --port 8791 --local
+```
+
+Cần `.dev.vars` (đã gitignore) ở thư mục gốc:
+
+```
+ADMIN_PASSWORD=<mật khẩu chỉ dùng ở local>
+SESSION_SECRET=<chuỗi bất kỳ, chỉ dùng ở local>
+```
+
+`wrangler dev` dùng KV mô phỏng cục bộ, không đụng tới dữ liệu thật.
+
+### Vì sao không sửa nội dung ở đây
+
+Thân bài là JSX trong `src/data/blog.tsx` — bảng nhiều màu, khối code, chú thích
+song ngữ. Một cái form không round-trip được thứ đó mà không có nguy cơ làm hỏng
+bài, và lỗi chỉ lộ ra lúc build. Nên admin chỉ quản lý metadata; nút "Sửa nội dung"
+mở thẳng file trong VS Code.
+
+### Bảo mật
+
+- Mật khẩu và khoá ký nằm trong Worker secret, **không** nằm trong bundle của trang.
+- Cookie phiên `HttpOnly; Secure; SameSite=Strict`, ký HMAC-SHA256, hết hạn sau 12 giờ.
+- So sánh mật khẩu và chữ ký dùng hàm không phụ thuộc thời gian.
+- `/admin` có `noindex, nofollow` và bị chặn trong `robots.txt` — dọn dẹp thôi, phần
+  bảo vệ thật là mật khẩu.
+- Ghi metadata chỉ nhận đúng ba trường `hidden` / `pinned` / `order`, mọi thứ khác bị bỏ.
+
 ## Giấy phép
 
 © 2026 PKMM.ONLINE. All rights reserved.

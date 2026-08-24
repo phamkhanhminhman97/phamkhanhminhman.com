@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.dev.vars
+
+# wrangler: trạng thái local (KV mô phỏng, cache build)
+.wrangler/

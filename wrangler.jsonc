@@ -1,10 +1,31 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "pkmm-online",
-  "compatibility_date": "2026-05-24",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-15",
   "assets": {
     "directory": "./out",
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
-  }
+    "not_found_handling": "404-page",
+    // Chỉ những đường dẫn này đi qua Worker; mọi thứ khác (ảnh, JS, CSS, trang
+    // about...) đi thẳng tới Asset Worker, không tốn một lần gọi Worker nào.
+    "run_worker_first": [
+      "/api/admin/*",
+      "/",
+      "/vi",
+      "/vi/",
+      "/blog/*",
+      "/vi/blog/*",
+      "/rss.xml",
+      "/sitemap.xml"
+    ]
+  },
+  // id ghim tay: bản wrangler 4.125.0 không tự ghi id ngược lại sau
+  // provision — deploy tiếp mà thiếu id có thể tạo namespace thứ hai và bỏ
+  // rơi dữ liệu admin đã có trong namespace này.
+  "kv_namespaces": [
+    { "binding": "POST_META", "id": "3d764690bc6c492982b4b627f83ee088" }
+  ],
+  "observability": { "enabled": true }
 }

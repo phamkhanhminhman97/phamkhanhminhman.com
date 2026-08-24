@@ -50,3 +50,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #bab7b1;
 }
+
+/* Danh sách bài trên trang chủ.
+   Đường kẻ ngăn cách gắn TRÊN từng thẻ để nó đi theo thẻ khi Worker đổi thứ tự
+   bằng CSS `order`. Thẻ đứng đầu theo thứ tự DOM được gỡ kẻ ở đây; khi Worker
+   ghim một bài khác lên đầu, nó tự phát thêm luật gỡ kẻ cho bài đó. */
+.blog-list > .blog-card {
+  border-top: 1px solid #e5e5e5;
+  padding-top: 1.25rem;
+}
+.blog-list > .blog-card:first-child {
+  border-top: none;
+  padding-top: 0;
+}

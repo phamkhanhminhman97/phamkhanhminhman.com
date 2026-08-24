@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "prebuild": "node scripts/check-build-env.mjs",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json",
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",
@@ -25,6 +27,6 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "wrangler": "^4.86.0"
+    "wrangler": "^4.125.0"
   }
 }

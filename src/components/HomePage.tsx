@@ -7,6 +7,7 @@ import { npmPackages } from "@/data/projects";
 import { profile } from "@/data/profile";
 import { type Locale, HTML_LANG, href } from "@/i18n/config";
 import { formatDayMonth } from "@/lib/date";
+import { hiddenSlugs } from "@/lib/post-visibility";
 import { getDictionary } from "@/i18n/dictionary";
 import LangSwitch from "@/components/LangSwitch";
 
@@ -188,6 +189,13 @@ export default function HomePage({ lang }: { lang: Locale }) {
       element.scrollIntoView({ behavior: "smooth" });
     }
   };
+
+  // Bài đang ẩn: Worker đã gỡ khỏi HTML, client phải bỏ y hệt, nếu không
+  // React hydrate sẽ chèn lại chúng vào DOM.
+  const hidden = hiddenSlugs();
+  const visiblePosts = hidden.length
+    ? blogPosts.filter((p) => !hidden.includes(p.slug))
+    : blogPosts;
 
   return (
     <div lang={HTML_LANG[lang]} className="max-w-6xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
@@ -503,14 +511,17 @@ export default function HomePage({ lang }: { lang: Locale }) {
               </p>
             )}
 
-            <div className="flex flex-col gap-6">
-              {blogPosts.map((post, postIdx) => {
+            {/* `blog-list` + `data-post-slug`: điểm neo để Worker ẩn bài hoặc đổi
+                thứ tự bằng CSS `order` mà không cần build lại site. Đường kẻ ngăn
+                cách nằm TRÊN từng thẻ (không phải phần tử riêng) để nó đi theo thẻ
+                khi thứ tự đổi; thẻ đứng đầu được Worker gỡ kẻ bằng CSS. */}
+            <div className="blog-list flex flex-col gap-6">
+              {visiblePosts.map((post) => {
                 const { day, month } = formatDayMonth(post.date, lang);
 
                 return (
                   <React.Fragment key={post.slug}>
-                    {postIdx > 0 && <div className="editorial-border-thin my-2" />}
-                    <article className="group">
+                    <article data-post-slug={post.slug} className="group blog-card">
                       <div className="flex items-start gap-4">
                         <div className="flex-shrink-0 text-center font-mono text-zinc-400 border border-zinc-200 rounded p-2 bg-white min-w-[70px]">
                           <span className="block text-lg font-bold text-zinc-800 leading-none">{day}</span>
