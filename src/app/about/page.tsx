@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
 import AboutPage from "@/components/AboutPage";
-import { getDictionary } from "@/i18n/dictionary";
-import { alternatesFor, ogLocaleFor } from "@/i18n/metadata";
+import { copy } from "@/content/copy";
+import { alternatesFor, openGraphUrl } from "@/lib/seo";
 
-const LANG = "en" as const;
-const t = getDictionary(LANG).about;
+const t = copy.about;
 
 export const metadata: Metadata = {
   title: t.metaTitle,
   description: t.metaDescription,
-  alternates: alternatesFor(LANG, "/about"),
+  alternates: alternatesFor("/about"),
   openGraph: {
     type: "profile",
     title: t.metaTitle,
     description: t.metaDescription,
-    ...ogLocaleFor(LANG),
+    locale: "en_US",
+    url: openGraphUrl("/about"),
   },
 };
 
 export default function Page() {
-  return <AboutPage lang={LANG} />;
+  return <AboutPage />;
 }

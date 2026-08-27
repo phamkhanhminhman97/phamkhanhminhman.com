@@ -26,10 +26,10 @@ export async function GET() {
     .map(({ post, date }) => {
       const url = `${SITE_URL}/blog/${post.slug}`;
       return `    <item>
-      <title>${xmlEscape(post.title.en)}</title>
+      <title>${xmlEscape(post.title)}</title>
       <link>${url}</link>
       <guid isPermaLink="true">${url}</guid>
-      <description>${xmlEscape(post.description.en)}</description>
+      <description>${xmlEscape(post.description)}</description>
       <category>${xmlEscape(post.category)}</category>${
         `\n      <pubDate>${date.toUTCString()}</pubDate>`
       }
@@ -43,7 +43,7 @@ export async function GET() {
     <title>PKMM.ONLINE — Technical Blog</title>
     <link>${SITE_URL}</link>
     <description>Backend engineering, e-commerce API integration, and applied AI research notes.</description>
-    <language>vi</language>
+    <language>en</language>
     <atom:link href="${SITE_URL}/rss.xml" rel="self" type="application/rss+xml" />
 ${items}
   </channel>

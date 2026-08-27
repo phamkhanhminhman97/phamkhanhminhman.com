@@ -1,6 +1,7 @@
 import type { BlogPost } from "./types";
 
 import optimisticVsPessimisticLocking from "./posts/optimistic-vs-pessimistic-locking";
+import postgresqlIsolationLevelsMeasured from "./posts/postgresql-isolation-levels-measured";
 import doubleCountingInAppendOnlyProjections from "./posts/double-counting-in-append-only-projections";
 import silentMissingAwaitRunInExecutor from "./posts/silent-missing-await-run-in-executor";
 import shopeeOauthTokenLifecycleAtScale from "./posts/shopee-oauth-token-lifecycle-at-scale";
@@ -15,6 +16,7 @@ export type { BlogPost } from "./types";
  * `./posts/<slug>.tsx` — xem `./types.ts` cho hình dạng `BlogPost`.
  */
 export const blogPosts: BlogPost[] = [
+  postgresqlIsolationLevelsMeasured,
   optimisticVsPessimisticLocking,
   doubleCountingInAppendOnlyProjections,
   silentMissingAwaitRunInExecutor,

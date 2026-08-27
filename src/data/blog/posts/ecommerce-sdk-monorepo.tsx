@@ -4,12 +4,10 @@ const post: BlogPost = {
     slug: "ecommerce-sdk-monorepo",
     date: "2026-03-28",
     category: "Architecture",
-    availableIn: ["en", "vi"],
-    title: { en: "Building an e-commerce SDK monorepo with npm workspaces", vi: "Xây dựng Monorepo với npm workspaces cho các E-commerce SDKs" },
-    readTime: { en: "6 min read", vi: "6 phút đọc" },
-    description: { en: "Managing a multi-package project, keeping versions in sync, and streamlining releases with Changesets.", vi: "Cách thiết lập và quản lý dự án multi-package, tự động đồng bộ hóa phiên bản và tối ưu hóa quy trình release bằng Changesets." },
-    content: {
-      en: () => (
+    title: "Building an e-commerce SDK monorepo with npm workspaces",
+    readTime: "6 min read",
+    description: "Managing a multi-package project, keeping versions in sync, and streamlining releases with Changesets.",
+    content: () => (
       <div className="font-serif-body text-[15px] text-zinc-800 leading-relaxed text-justify space-y-6">
         <p>
           I maintain three API clients for Vietnamese marketplaces — Shopee, TikTok Shop
@@ -134,77 +132,7 @@ npm run check-all-in-one-deps`}
           setup makes invisible needs a check that runs where you cannot ignore it.
         </p>
       </div>
-      ),
-      vi: () => (
-      <div className="font-serif-body text-[15px] text-zinc-800 leading-relaxed text-justify space-y-6">
-        <p>
-          Khi phát triển các bộ công cụ kết nối API đa sàn (Shopee, TikTok Shop, Lazada), việc quản lý mã nguồn dưới dạng các repository riêng biệt thường dẫn đến việc trùng lặp code cấu hình, khó đồng bộ ESLint/TypeScript và khó kiểm thử liên hoàn.
-        </p>
-        <p>
-          Giải pháp tối ưu nhất là gom tất cả các package này vào một kho lưu trữ duy nhất sử dụng mô hình <strong>Monorepo</strong>. Trong bài viết này, chúng ta sẽ xem xét cấu trúc thực tế của monorepo kết nối thương mại điện tử bằng <strong>npm workspaces</strong> và <strong>Changesets</strong>.
-        </p>
-
-        <h3 className="font-sans font-bold text-lg text-black pt-4">1. Khai báo Workspaces trong package.json</h3>
-        <p>
-          Tại file <code>package.json</code> ở gốc của dự án, chúng ta sử dụng trường <code>workspaces</code> để khai báo thư mục chứa các thư viện con:
-        </p>
-        <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`{
-  "name": "shopee-tiktok-lazada-monorepo",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
-  "devDependencies": {
-    "@changesets/cli": "^2.31.0"
-  }
-}`}
-        </pre>
-        <p>
-          Cấu trúc cây thư mục của monorepo như sau:
-        </p>
-        <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`shopee-tiktok-lazada-monorepo/
-├── package.json
-├── packages/
-│   ├── shopee-api-client/       # SDK tương tác Shopee
-│   ├── tiktokshops-api-client/  # SDK tương tác TikTok Shop
-│   ├── lazada-api-client/       # SDK tương tác Lazada
-│   └── shopee-tiktokshops-lazada-api/ # Package hợp nhất (All-in-One)
-└── scripts/
-    └── sync-all-in-one-deps.cjs # Tự động hóa đồng bộ dependency`}
-        </pre>
-
-        <h3 className="font-sans font-bold text-lg text-black pt-4">2. Đồng bộ hóa Dependency bằng Script tự động</h3>
-        <p>
-          Gói hợp nhất (All-in-One) thực chất là một wrapper phụ thuộc trực tiếp vào 3 package con còn lại. Để tránh lỗi quên cập nhật phiên bản của các package con trong file dependencies của package all-in-one, ta viết một script Node.js <code>scripts/sync-all-in-one-deps.cjs</code> thực hiện quét phiên bản mới nhất ở local và cập nhật tự động:
-        </p>
-        <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`// node scripts/sync-all-in-one-deps.cjs
-// Script đọc version của shopee-api-client, tiktokshops-api-client, lazada-api-client
-// rồi chèn chính xác phiên bản đó vào dependencies của gói all-in-one.`}
-        </pre>
-
-        <h3 className="font-sans font-bold text-lg text-black pt-4">3. Quản lý Phiên bản và Phát hành với Changesets</h3>
-        <p>
-          <strong>Changesets</strong> là giải pháp quản lý phiên bản mã nguồn cực kỳ mạnh mẽ cho monorepo. Nó giải quyết triệt để bài toán: Khi package A thay đổi, làm sao để tạo changelog và phát hành tự động?
-        </p>
-        <div className="bg-white border border-zinc-200 p-5 rounded-lg shadow-2xs font-sans text-xs space-y-3">
-          <p className="font-bold text-zinc-800">Quy trình làm việc với Changesets:</p>
-          <ul className="list-disc pl-4 space-y-1 text-zinc-600">
-            <li><strong>npx changeset:</strong> Chạy khi hoàn thành một tính năng. CLI sẽ hỏi package nào đổi, thuộc loại version bump nào (patch, minor, major) và yêu cầu viết tóm tắt thay đổi.</li>
-            <li><strong>npx changeset version:</strong> Chạy trước khi release. Lệnh này đọc tất cả changeset tạm thời, tự động tăng phiên bản trong các file <code>package.json</code> con và sinh ra file <code>CHANGELOG.md</code> mới.</li>
-            <li><strong>npm publish --workspaces:</strong> Phát hành toàn bộ package đã được tăng phiên bản lên npm registry.</li>
-          </ul>
-        </div>
-
-        <h3 className="font-sans font-bold text-lg text-black pt-4">4. Tổng kết</h3>
-        <p>
-          Sử dụng <strong>npm workspaces</strong> kết hợp với <strong>Changesets</strong> giúp toàn bộ hệ thống SDK được tích hợp mượt mà, dễ dàng phát triển chéo và duy trì chuẩn hóa mã nguồn trên một kho Git duy nhất.
-        </p>
-      </div>
-      ),
-    },
+    ),
 };
 
 export default post;

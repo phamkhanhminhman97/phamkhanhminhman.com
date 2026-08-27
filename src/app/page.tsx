@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 import HomePage from "@/components/HomePage";
-import { getDictionary } from "@/i18n/dictionary";
-import { alternatesFor, ogLocaleFor } from "@/i18n/metadata";
+import { copy } from "@/content/copy";
+import { alternatesFor, openGraphUrl } from "@/lib/seo";
 
-const LANG = "en" as const;
-const t = getDictionary(LANG).home;
+const t = copy.home;
 
 export const metadata: Metadata = {
   title: { absolute: t.metaTitle },
   description: t.metaDescription,
-  alternates: alternatesFor(LANG, "/"),
+  alternates: alternatesFor("/"),
   openGraph: {
     title: t.metaTitle,
     description: t.metaDescription,
-    ...ogLocaleFor(LANG),
+    locale: "en_US",
+    url: openGraphUrl("/"),
   },
 };
 
 export default function Page() {
-  return <HomePage lang={LANG} />;
+  return <HomePage />;
 }

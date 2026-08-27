@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import BlogArticle from "@/components/BlogArticle";
 import { blogPosts } from "@/data/blog";
-import { alternatesFor, ogLocaleFor } from "@/i18n/metadata";
-
-const LANG = "en" as const;
+import { alternatesFor, openGraphUrl } from "@/lib/seo";
 
 export function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }));
@@ -19,22 +17,16 @@ export async function generateMetadata({
   const post = blogPosts.find((p) => p.slug === slug);
   if (!post) return { title: "Not found" };
 
-  // Bài chưa dịch sang LANG: trang vẫn tồn tại (người đọc bấm từ trang chủ
-  // vẫn tới nơi), nhưng trỏ canonical về bản CÓ nội dung và không cho index —
-  // nếu không, Google thấy hai URL cùng một bài tiếng Việt.
-  const translated = post.availableIn.includes(LANG);
-  const canonicalLang = translated ? LANG : post.availableIn[0];
-
   return {
-    title: post.title[LANG],
-    description: post.description[LANG],
-    alternates: alternatesFor(canonicalLang, `/blog/${post.slug}`, post.availableIn),
-    ...(translated ? {} : { robots: { index: false, follow: true } }),
+    title: post.title,
+    description: post.description,
+    alternates: alternatesFor(`/blog/${post.slug}`),
     openGraph: {
       type: "article",
-      title: post.title[LANG],
-      description: post.description[LANG],
-      ...ogLocaleFor(LANG),
+      title: post.title,
+      description: post.description,
+      locale: "en_US",
+      url: openGraphUrl(`/blog/${post.slug}`),
     },
   };
 }
@@ -47,5 +39,5 @@ export default async function Page({
   const { slug } = await params;
   const post = blogPosts.find((p) => p.slug === slug);
   if (!post) notFound();
-  return <BlogArticle post={post} lang={LANG} />;
+  return <BlogArticle post={post} />;
 }

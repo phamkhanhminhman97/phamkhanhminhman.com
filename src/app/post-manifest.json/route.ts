@@ -15,7 +15,6 @@ export async function GET() {
     slug: p.slug,
     date: p.date,
     category: p.category,
-    availableIn: p.availableIn,
     title: p.title,
   }));
 

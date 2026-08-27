@@ -38,15 +38,15 @@ export const npmPackages: NpmPackageInfo[] = [
     description:
       "TypeScript client for Shopee Open API v2. Covers seller authorization, token management, orders, products, logistics, and payment escrow.",
     longDescription:
-      "shopee-api-client là thư viện TypeScript kết nối Shopee Open API v2. Hỗ trợ đầy đủ luồng OAuth: tạo link authorization, đổi code lấy access token, tự động refresh token. Bao gồm các API đơn hàng (getOrders, getOrderDetail, cancelOrder), sản phẩm (getCategory, getAttributes, getBrandList, updatePrice, updateStock), vận chuyển (shipOrder, getTrackingNumber, createShippingDocument, massShipOrder), thanh toán (getEscrowDetail), và xác thực webhook push notification từ Shopee.",
+      "shopee-api-client is a TypeScript library for Shopee Open API v2. It handles the whole OAuth flow: building the authorization link, exchanging the code for an access token, and refreshing the token before it expires. It covers order APIs (getOrders, getOrderDetail, cancelOrder), products (getCategory, getAttributes, getBrandList, updatePrice, updateStock), logistics (shipOrder, getTrackingNumber, createShippingDocument, massShipOrder), payment (getEscrowDetail), and signature checking for Shopee push notification webhooks.",
     features: [
       "OAuth 2.0: generateAuthLink, fetchTokenWithAuthCode, fetchTokenWithRefreshToken",
       "Orders: getOrders (auto-pagination), getOrderList, getOrderDetail, cancelOrder, searchPackageList",
       "Products: getCategory, getAttributes, getBrandList, addItem, updatePrice, updateStock, unListItem",
       "Logistics: shipOrder, getChannelList, getTrackingNumber, createShippingDocument, massShipOrder",
-      "Payment: getEscrowDetail (tra soát thanh toán)",
+      "Payment: getEscrowDetail (payment reconciliation)",
       "Webhook Push: verifyShopeePushSignature, parseShopeePushPayload, createShopeePushSignature",
-      "Full TypeScript với DTOs request/response được định nghĩa đầy đủ",
+      "Typed end to end, with request/response DTOs for every call",
     ],
     githubUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/shopee-api-client",
@@ -70,7 +70,7 @@ export const npmPackages: NpmPackageInfo[] = [
     ),
     codeExamples: [
       {
-        title: "Khởi tạo & Cấu hình",
+        title: "Setup & configuration",
         language: "typescript",
         code: `import { ShopeeModule } from "shopee-api-client";
 
@@ -83,12 +83,12 @@ const shopee = new ShopeeModule({
 });`,
       },
       {
-        title: "Lấy danh sách đơn hàng",
+        title: "Fetching orders",
         language: "typescript",
-        code: `// Lấy đơn hàng trong 60 phút qua (auto-pagination)
+        code: `// Orders from the last 60 minutes (auto-pagination)
 const recentOrders = await shopee.getOrders(60);
 
-// Hoặc với bộ lọc chi tiết:
+// Or with a narrower filter:
 const pendingOrders = await shopee.getOrders({
   beforeMinutes: 120,
   orderStatus: "READY_TO_SHIP",
@@ -96,14 +96,14 @@ const pendingOrders = await shopee.getOrders({
   pageSize: 50,
 });
 
-console.log(\`Có \${pendingOrders.length} đơn đang chờ giao\`);`,
+console.log(\`\${pendingOrders.length} orders waiting to ship\`);`,
       },
       {
-        title: "Xác thực Webhook Push",
+        title: "Verifying a push webhook",
         language: "typescript",
         code: `import { verifyShopeePushSignature } from "shopee-api-client";
 
-// Xác thực signature từ Shopee Push Notification
+// Check the signature on a Shopee push notification
 const isValid = verifyShopeePushSignature(
   process.env.SHOPEE_PARTNER_KEY!,
   "raw-push-body",
@@ -111,10 +111,10 @@ const isValid = verifyShopeePushSignature(
 );
 
 if (isValid) {
-  // Xử lý đơn hàng từ push notification
-  console.log("Webhook hợp lệ, tiến hành xử lý...");
+  // Process the order carried by the push notification
+  console.log("Signature checks out, processing...");
 } else {
-  console.warn("Signature không khớp, bỏ qua request");
+  console.warn("Signature mismatch, dropping the request");
 }`,
       },
     ],
@@ -125,17 +125,17 @@ if (isValid) {
     npmName: "tiktokshops-api-client",
     tag: "API Client • v1.0.6",
     description:
-      "TypeScript API client for TikTok Shop Open API. Hỗ trợ seller authorization, order APIs, product APIs, và fulfillment APIs.",
+      "TypeScript API client for TikTok Shop Open API. Covers seller authorization, order APIs, product APIs, and fulfillment APIs.",
     longDescription:
-      "tiktokshops-api-client là thư viện TypeScript kết nối TikTok Shop Open API. Hỗ trợ cả API v1 và v2, bao gồm: xác thực seller OAuth, quản lý đơn hàng (getOrderList, getOrderDetail, getPriceDetail), sản phẩm (getProductDetail, getCategories, getBrands, getAttributes, createProduct), fulfillment (shipPackage, getPackageTimeSlots, getPackageShippingDocument), và logistic APIs. Thư viện sử dụng crypto-js để ký request signature theo chuẩn bảo mật TikTok Shop.",
+      "tiktokshops-api-client is a TypeScript library for TikTok Shop Open API. It speaks both v1 and v2 and covers seller OAuth, orders (getOrderList, getOrderDetail, getPriceDetail), products (getProductDetail, getCategories, getBrands, getAttributes, createProduct), fulfillment (shipPackage, getPackageTimeSlots, getPackageShippingDocument), and the logistic APIs. Request signing uses crypto-js and follows the signature scheme TikTok Shop expects.",
     features: [
       "OAuth: generateAuthLink, fetchTokenWithAuthCode, refreshToken, getAuthorizedShop",
       "Orders (v2): getOrderList, getOrderDetail, getPriceDetail",
       "Products (v2): getProductDetail, getCategories, getBrands, getAttributes, createProduct",
       "Fulfillment (v2): shipPackage, getPackageTimeSlots, getPackageShippingDocument",
-      "API v1 (legacy): order và product APIs",
-      "Cấu hình: appKey, appSecret, serviceId, shopId, shopCipher, accessToken, refreshToken",
-      "Hỗ trợ US Domain cho Partner Center Mỹ",
+      "API v1 (legacy): order and product APIs",
+      "Config: appKey, appSecret, serviceId, shopId, shopCipher, accessToken, refreshToken",
+      "US domain support for the US Partner Center",
     ],
     githubUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/tiktokshops-api-client",
@@ -159,7 +159,7 @@ if (isValid) {
     ),
     codeExamples: [
       {
-        title: "Khởi tạo Client",
+        title: "Creating the client",
         language: "typescript",
         code: `import { TiktokModule } from "tiktokshops-api-client";
 
@@ -174,9 +174,9 @@ const tiktok = new TiktokModule({
 });`,
       },
       {
-        title: "Lấy danh sách đơn hàng",
+        title: "Fetching orders",
         language: "typescript",
-        code: `// Lấy đơn hàng trong 24 giờ qua
+        code: `// Orders from the last 24 hours
 const orders = await tiktok.getOrderList({
   beforeHours: 24,
   pageSize: 20,
@@ -186,27 +186,27 @@ const orders = await tiktok.getOrderList({
 
 console.log(orders);
 
-// Lấy chi tiết một đơn
+// Detail for a single order
 const detail = await tiktok.getOrderDetail("ORDER_NUMBER");
 console.log(detail);`,
       },
       {
-        title: "Tạo sản phẩm mới",
+        title: "Creating a product",
         language: "typescript",
         code: `import { TiktokModule } from "tiktokshops-api-client";
 
 const tiktok = new TiktokModule({ /* config */ });
 
-// Lấy danh mục và thuộc tính
+// Look up the category and its attributes
 const categories = await tiktok.getCategories();
 const attributes = await tiktok.getAttributes(categoryId);
 
-// Tạo sản phẩm
+// Create the product
 const newProduct = await tiktok.createProduct({
-  product_name: "Tên sản phẩm",
+  product_name: "Product name",
   category_id: "CATEGORY_ID",
-  description: "Mô tả sản phẩm...",
-  // ... các trường khác
+  description: "Product description...",
+  // ... remaining fields
 });`,
       },
     ],
@@ -217,16 +217,16 @@ const newProduct = await tiktok.createProduct({
     npmName: "lazada-api-client",
     tag: "API Client • v1.0.6",
     description:
-      "TypeScript API client for Lazada Open API. Hỗ trợ seller authorization, order APIs, và product APIs.",
+      "TypeScript API client for Lazada Open API. Covers seller authorization, order APIs, and product APIs.",
     longDescription:
-      "lazada-api-client là thư viện TypeScript kết nối Lazada Open API. Hỗ trợ đa quốc gia (sg, my, th, vn, id, ph, cb). Bao gồm xác thực seller OAuth (generateAuthLink, fetchTokenWithAuthCode, refreshToken), quản lý đơn hàng (getOrdersBeforeSomeDay, getOrderDetail), và quản lý sản phẩm (getProducts, getProductItem, updateSellableQuantity, updateStatusProduct, updatePrice, getCategoryTree, getBrandByPages, createProduct). Thư viện tự động ký chữ ký theo chuẩn Lazada API signature.",
+      "lazada-api-client is a TypeScript library for Lazada Open API, and works against every Lazada region (sg, my, th, vn, id, ph, cb). It covers seller OAuth (generateAuthLink, fetchTokenWithAuthCode, refreshToken), orders (getOrdersBeforeSomeDay, getOrderDetail), and products (getProducts, getProductItem, updateSellableQuantity, updateStatusProduct, updatePrice, getCategoryTree, getBrandByPages, createProduct). Every request is signed for you following the Lazada API signature scheme.",
     features: [
       "OAuth: generateAuthLink, fetchTokenWithAuthCode, refreshToken",
       "Orders: getOrdersBeforeSomeDay, getOrderDetail",
       "Products: getProducts, getProductItem, updateSellableQuantity, updateStatusProduct, updatePrice",
-      "Danh mục & Thương hiệu: getCategoryTree, getBrandByPages, createProduct",
-      "Đa quốc gia: sg, my, th, vn, id, ph, cb",
-      "Tự động ký chữ ký SHA256 theo chuẩn Lazada",
+      "Categories & brands: getCategoryTree, getBrandByPages, createProduct",
+      "Regions: sg, my, th, vn, id, ph, cb",
+      "SHA256 request signing handled for you, per the Lazada spec",
     ],
     githubUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/lazada-api-client",
@@ -250,7 +250,7 @@ const newProduct = await tiktok.createProduct({
     ),
     codeExamples: [
       {
-        title: "Khởi tạo & Cấu hình",
+        title: "Setup & configuration",
         language: "typescript",
         code: `import { LazadaModule } from "lazada-api-client";
 
@@ -263,22 +263,22 @@ const lazada = new LazadaModule({
 });`,
       },
       {
-        title: "Quản lý sản phẩm",
+        title: "Managing products",
         language: "typescript",
-        code: `// Lấy danh sách sản phẩm
+        code: `// List products
 const products = await lazada.getProducts();
 console.log(products);
 
-// Cập nhật số lượng có thể bán
+// Update sellable quantity
 await lazada.updateSellableQuantity(123456, {
   sku_id: "SKU001",
   seller_sku: "PRODUCT-SKU",
   sellable_quantity: 100,
 });
 
-// Cập nhật trạng thái sản phẩm
+// Update product status
 await lazada.updateStatusProduct(123456, {
-  status: "active", // hoặc "inactive"
+  status: "active", // or "inactive"
 });`,
       },
     ],
@@ -289,16 +289,16 @@ await lazada.updateStatusProduct(123456, {
     npmName: "shopee-tiktokshops-lazada-api",
     tag: "Monorepo • v4.3.16",
     description:
-      "Package hợp nhất cả ba SDK Shopee, TikTok Shop và Lazada trong một dependency duy nhất. Tự động đồng bộ phiên bản.",
+      "Bundles the Shopee, TikTok Shop and Lazada SDKs into a single dependency, with versions kept in sync automatically.",
     longDescription:
-      "shopee-tiktokshops-lazada-api là package wrapper tích hợp sẵn cả ba thư viện shopee-api-client, tiktokshops-api-client và lazada-api-client. Thay vì phải cài đặt từng package riêng lẻ và quản lý nhiều phiên bản, bạn chỉ cần một lệnh npm install là có thể sử dụng đồng thời cả ba nền tảng thương mại điện tử. Package này re-export tất cả các module, class, type, và DTOs từ cả ba package con, giúp đơn giản hóa quản lý dependency cho các hệ thống multi-channel e-commerce.",
+      "shopee-tiktokshops-lazada-api is a wrapper package that pulls in shopee-api-client, tiktokshops-api-client and lazada-api-client together. Instead of installing three packages and tracking three version numbers, one npm install gets you all three marketplaces. It re-exports every module, class, type and DTO from the three child packages, which keeps dependency management simpler in a multi-channel e-commerce system.",
     features: [
-      "Re-export ShopeeModule, TiktokModule, LazadaModule từ một package duy nhất",
-      "Tự động đồng bộ phiên bản với các package con qua monorepo scripts",
-      "Giảm thiểu conflict dependency khi dùng nhiều SDK",
-      "Phù hợp cho multi-channel e-commerce system",
-      "Hỗ trợ TypeScript đầy đủ với tất cả DTOs",
-      "Dễ dàng nâng cấp: chạy sync-all-in-one-deps để cập nhật",
+      "Re-exports ShopeeModule, TiktokModule and LazadaModule from one package",
+      "Child package versions stay in sync via the monorepo scripts",
+      "Fewer dependency conflicts than installing the three SDKs separately",
+      "Meant for multi-channel e-commerce systems",
+      "Fully typed, with all DTOs carried through",
+      "Upgrading is one command: run sync-all-in-one-deps",
     ],
     githubUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/shopee-tiktok-lazada-api",
@@ -322,7 +322,7 @@ await lazada.updateStatusProduct(123456, {
     ),
     codeExamples: [
       {
-        title: "Sử dụng All-in-One",
+        title: "Using the all-in-one package",
         language: "typescript",
         code: `import {
   ShopeeModule,
@@ -330,12 +330,12 @@ await lazada.updateStatusProduct(123456, {
   LazadaModule,
 } from "shopee-tiktokshops-lazada-api";
 
-// Khởi tạo tất cả clients từ một package duy nhất
+// Every client comes from the same package
 const shopee = new ShopeeModule({ /* Shopee config */ });
 const tiktok = new TiktokModule({ /* TikTok config */ });
 const lazada = new LazadaModule({ /* Lazada config */ });
 
-// Đồng bộ đơn hàng từ tất cả các sàn
+// Pull orders from all three marketplaces at once
 const [shopeeOrders, tiktokOrders, lazadaProducts] = await Promise.all([
   shopee.getOrders(60),
   tiktok.getOrderList({ beforeHours: 24, pageSize: 20 }),

@@ -1,30 +1,25 @@
 import React from "react";
 import Link from "next/link";
 import { blogPosts } from "@/data/blog";
-import { type Locale, href, HTML_LANG } from "@/i18n/config";
 import { formatDate } from "@/lib/date";
-import { getDictionary } from "@/i18n/dictionary";
+import { copy } from "@/content/copy";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 
 export default function BlogArticle({
   post,
-  lang,
 }: {
   post: (typeof blogPosts)[number];
-  lang: Locale;
 }) {
-  const d = getDictionary(lang);
-  const Content = post.content[lang];
-  /** Bài chưa có bản dịch cho locale này -> nói rõ, không để người đọc bấm vào rồi mới biết. */
-  const translated = post.availableIn.includes(lang);
+  const d = copy;
+  const Content = post.content;
 
   return (
-    <div lang={HTML_LANG[lang]} className="max-w-4xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
+    <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
       
       {/* Header back navigation */}
       <header className="flex items-center justify-between border-b border-zinc-200 pb-4 mb-8">
         <Link
-          href={href(lang, "/")}
+          href="/"
           className="flex items-center gap-1 text-xs font-mono font-bold tracking-wider text-zinc-600 hover:text-black uppercase"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> {d.nav.backToHome}
@@ -47,27 +42,18 @@ export default function BlogArticle({
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" /> {formatDate(post.date, lang)}
+              <Calendar className="w-3 h-3" /> {formatDate(post.date)}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {post.readTime[lang]}
+              <Clock className="w-3 h-3" /> {post.readTime}
             </span>
           </div>
 
           {/* Title */}
           <h1 className="font-serif-body font-black text-2xl md:text-3xl text-zinc-950 leading-tight mb-6 pb-4 border-b border-zinc-300">
-            {post.title[lang]}
+            {post.title}
           </h1>
-
-          {!translated && (
-            <p
-              lang="en"
-              className="font-mono text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-6"
-            >
-              {d.blog.langNote}
-            </p>
-          )}
 
           {/* Render article content */}
           <div className="space-y-6">
@@ -76,7 +62,7 @@ export default function BlogArticle({
 
           <div className="editorial-border-double mt-12 py-4 flex justify-between items-center text-xs font-mono text-zinc-500">
             <span>{post.category}</span>
-            <Link href={href(lang, "/")} className="underline hover:text-black">
+            <Link href="/" className="underline hover:text-black">
               {d.nav.backToHome}
             </Link>
           </div>
@@ -108,13 +94,13 @@ export default function BlogArticle({
                 .map((other) => (
                   <li key={other.slug}>
                     <Link
-                      href={href(lang, `/blog/${other.slug}`)}
+                      href={`/blog/${other.slug}`}
                       className="font-bold text-zinc-800 hover:text-red-700 leading-snug block transition-colors"
                     >
-                      {other.title[lang]}
+                      {other.title}
                     </Link>
                     <span className="font-mono text-[9px] text-zinc-400 uppercase mt-0.5 block">
-                      {formatDate(other.date, lang)}
+                      {formatDate(other.date)}
                     </span>
                   </li>
                 ))}

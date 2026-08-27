@@ -5,11 +5,9 @@ import Link from "next/link";
 import { blogPosts } from "@/data/blog";
 import { npmPackages } from "@/data/projects";
 import { profile } from "@/data/profile";
-import { type Locale, HTML_LANG, href } from "@/i18n/config";
 import { formatDayMonth } from "@/lib/date";
 import { hiddenSlugs } from "@/lib/post-visibility";
-import { getDictionary } from "@/i18n/dictionary";
-import LangSwitch from "@/components/LangSwitch";
+import { copy } from "@/content/copy";
 
 /** Khoá Web3Forms nạp lúc build. Không có -> phần liên hệ rơi về mailto. */
 const WEB3FORMS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_KEY ?? "";
@@ -61,8 +59,8 @@ const GithubIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-export default function HomePage({ lang }: { lang: Locale }) {
-  const d = getDictionary(lang);
+export default function HomePage() {
+  const d = copy;
   const t = d.home;
 
   /** Gửi bằng fetch để người dùng ở lại trang, thay vì bị đá sang trang cảm ơn. */
@@ -198,7 +196,7 @@ export default function HomePage({ lang }: { lang: Locale }) {
     : blogPosts;
 
   return (
-    <div lang={HTML_LANG[lang]} className="max-w-6xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
+    <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
 
       {/* HEADER SECTION */}
       <header className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6">
@@ -214,9 +212,6 @@ export default function HomePage({ lang }: { lang: Locale }) {
 
         {/* TIME & WEATHER WIDGET */}
         <div className="flex flex-col items-center md:items-end text-center md:text-right font-mono text-xs text-zinc-600">
-          <div className="mb-2">
-            <LangSwitch lang={lang} path="/" />
-          </div>
           <div className="flex items-center gap-1.5 text-zinc-800 font-bold mb-1">
             <Calendar className="w-3.5 h-3.5" />
             <span>{dateStr || "Saturday, May 23, 2026"}</span>
@@ -224,7 +219,7 @@ export default function HomePage({ lang }: { lang: Locale }) {
 
           <div className="flex items-center gap-1.5 mb-1">
             <Clock className="w-3.5 h-3.5" />
-            <span>{profile.location[lang]} — </span>
+            <span>{profile.location} — </span>
             <span className="text-black font-semibold">{timeStr || "11:24:00 PM"}</span>
           </div>
 
@@ -448,23 +443,20 @@ export default function HomePage({ lang }: { lang: Locale }) {
                 <article key={idx} className="border border-zinc-300 bg-white p-5 shadow-sm">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
                     <span className="font-mono text-[11px] text-zinc-500 font-semibold">
-                      {r.period[lang]}
+                      {r.period}
                     </span>
                     <span className="font-mono text-[10px] uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded">
-                      {r.status[lang]}
+                      {r.status}
                     </span>
                   </div>
 
                   <h3 className="font-serif-body font-bold text-lg md:text-xl text-zinc-950 leading-snug">
-                    {lang === "vi" ? r.titleVi : r.titleEn}
+                    {r.title}
                   </h3>
-                  <p lang={lang === "vi" ? "en" : "vi"} className="font-serif-body italic text-sm text-zinc-600 leading-snug mt-1">
-                    {lang === "vi" ? r.titleEn : r.titleVi}
-                  </p>
-                  <p className="font-mono text-[11px] text-zinc-500 mt-2">{r.venue[lang]}</p>
+                  <p className="font-mono text-[11px] text-zinc-500 mt-2">{r.venue}</p>
 
                   <p className="font-serif-body text-[15px] text-zinc-700 leading-relaxed mt-3">
-                    {r.question[lang]}
+                    {r.question}
                   </p>
 
                   <div className="flex flex-wrap gap-1.5 mt-4">
@@ -500,24 +492,13 @@ export default function HomePage({ lang }: { lang: Locale }) {
               </span>
             </div>
 
-            {/* Bài viết chỉ có tiếng Việt — nói rõ cho người đọc EN, thay vì
-                để họ bấm vào rồi mới biết. */}
-            {lang === "en" && (
-              <p
-                lang="en"
-                className="font-mono text-[11px] text-zinc-600 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-5"
-              >
-                {d.blog.langNote}
-              </p>
-            )}
-
             {/* `blog-list` + `data-post-slug`: điểm neo để Worker ẩn bài hoặc đổi
                 thứ tự bằng CSS `order` mà không cần build lại site. Đường kẻ ngăn
                 cách nằm TRÊN từng thẻ (không phải phần tử riêng) để nó đi theo thẻ
                 khi thứ tự đổi; thẻ đứng đầu được Worker gỡ kẻ bằng CSS. */}
             <div className="blog-list flex flex-col gap-6">
               {visiblePosts.map((post) => {
-                const { day, month } = formatDayMonth(post.date, lang);
+                const { day, month } = formatDayMonth(post.date);
 
                 return (
                   <React.Fragment key={post.slug}>
@@ -529,13 +510,13 @@ export default function HomePage({ lang }: { lang: Locale }) {
                         </div>
                         <div>
                           <h3 className="font-sans font-bold text-[15px] group-hover:text-red-700 transition-colors">
-                            <Link href={href(lang, `/blog/${post.slug}`)} className="flex items-center gap-1">
-                              {post.title[lang]}
+                            <Link href={`/blog/${post.slug}`} className="flex items-center gap-1">
+                              {post.title}
                               <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </Link>
                           </h3>
                           <p className="font-serif-body text-[13.5px] text-zinc-600 mt-1 leading-relaxed">
-                            {post.description[lang]}
+                            {post.description}
                           </p>
                         </div>
                       </div>
@@ -557,7 +538,7 @@ export default function HomePage({ lang }: { lang: Locale }) {
               Phạm Khánh Minh Mẫn
             </h2>
             <p className="font-mono text-xs text-zinc-500 mb-4">
-              {profile.title[lang]}
+              {profile.title}
             </p>
 
             <div className="editorial-border-thin my-3" />
@@ -569,7 +550,7 @@ export default function HomePage({ lang }: { lang: Locale }) {
               </li>
               <li className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-zinc-500 shrink-0" />
-                <span>{profile.location[lang]}</span>
+                <span>{profile.location}</span>
               </li>
               <li className="flex items-center gap-2">
                 <GithubIcon className="w-4 h-4 text-zinc-500 shrink-0" />

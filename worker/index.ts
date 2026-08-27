@@ -103,9 +103,9 @@ function isHidden(meta: PostMetaMap, slug: string): boolean {
   return meta[slug]?.hidden === true;
 }
 
-/** Slug của bài từ /blog/<slug> hoặc /vi/blog/<slug>. */
+/** Slug của bài từ /blog/<slug>. */
 function slugOf(pathname: string): string | null {
-  const m = pathname.match(/^\/(?:vi\/)?blog\/([^/]+?)\/?$/);
+  const m = pathname.match(/^\/blog\/([^/]+?)\/?$/);
   return m ? decodeURIComponent(m[1]) : null;
 }
 
@@ -292,6 +292,13 @@ export default {
 
     if (url.pathname.startsWith("/api/admin/")) {
       return handleApi(request, env, url);
+    }
+
+    // Site từng song ngữ; bản tiếng Việt đã gỡ. Những URL /vi/* đã được index
+    // nên chuyển vĩnh viễn về bản tiếng Anh tương ứng thay vì trả 404 hàng loạt.
+    if (url.pathname === "/vi" || url.pathname.startsWith("/vi/")) {
+      const rest = url.pathname.slice(3) || "/";
+      return Response.redirect(`${url.origin}${rest}${url.search}`, 301);
     }
 
     // Bài bị ẩn: trả đúng trang 404 của site, không phải một trang trắng.

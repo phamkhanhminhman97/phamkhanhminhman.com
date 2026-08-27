@@ -214,10 +214,10 @@ export default async function ProjectDetailPage({
               >
                 <div>
                   <h4 className="font-sans font-bold text-sm text-zinc-900 group-hover:text-red-700 transition-colors">
-                    {relatedBlogPost.title.en}
+                    {relatedBlogPost.title}
                   </h4>
                   <p className="font-serif-body text-xs text-zinc-600 mt-0.5">
-                    {relatedBlogPost.description.en}
+                    {relatedBlogPost.description}
                   </p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-zinc-400 mt-1 shrink-0 group-hover:text-red-700 transition-colors" />

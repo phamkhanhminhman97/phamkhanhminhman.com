@@ -14,9 +14,8 @@
       "/api/admin/*",
       "/",
       "/vi",
-      "/vi/",
+      "/vi/*",
       "/blog/*",
-      "/vi/blog/*",
       "/rss.xml",
       "/sitemap.xml"
     ]

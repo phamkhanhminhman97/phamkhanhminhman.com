@@ -18,8 +18,7 @@ interface Post {
   slug: string;
   date: string;
   category: string;
-  availableIn: string[];
-  title: Record<string, string>;
+  title: string;
 }
 
 interface Meta {
@@ -235,10 +234,10 @@ export default function AdminPage() {
 
               <div className="min-w-0 flex-1">
                 <p className="font-sans font-bold text-[13px] text-zinc-900 leading-snug">
-                  {post.title.vi ?? post.title.en}
+                  {post.title}
                 </p>
                 <p className="font-mono text-[10px] text-zinc-400 mt-1 uppercase">
-                  {post.date} · {post.category} · {post.availableIn.join(", ")}
+                  {post.date} · {post.category}
                   {m.pinned && <span className="text-amber-700"> · ghim</span>}
                   {m.hidden && <span className="text-red-700"> · đang ẩn</span>}
                 </p>

@@ -16,7 +16,7 @@ const lora = Lora({
 
 const TITLE = "Phạm Khánh Minh Mẫn — Backend Engineer & LLM-Agent Memory Research";
 const DESCRIPTION =
-  "Kỹ sư backend (NestJS, PostgreSQL, Redis, AWS) với 5+ năm kinh nghiệm thương mại điện tử, tác giả các thư viện mã nguồn mở Shopee / TikTok Shop / Lazada API. Đang làm thạc sĩ Khoa học Máy tính tại ĐH Bách khoa Đà Nẵng, nghiên cứu bộ nhớ đồ thị cho tác tử LLM.";
+  "Backend engineer (NestJS, PostgreSQL, Redis, AWS) with 5+ years in e-commerce, author of the open-source Shopee / TikTok Shop / Lazada API clients. Graduate researcher on graph memory for LLM agents at Danang University of Science and Technology.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -42,7 +42,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: "profile",
     locale: "en_US",
-    alternateLocale: ["vi_VN"],
     url: SITE_URL,
     siteName: "PKMM.ONLINE",
     title: TITLE,
@@ -70,7 +69,7 @@ const personJsonLd = {
   alternateName: "PKMM",
   url: SITE_URL,
   email: `mailto:${profile.email}`,
-  jobTitle: profile.title.en,
+  jobTitle: profile.title,
   address: {
     "@type": "PostalAddress",
     addressLocality: "Đà Nẵng",
@@ -79,7 +78,7 @@ const personJsonLd = {
   sameAs: [profile.github, "https://www.npmjs.com/~phamkhanhminhman97"],
   alumniOf: profile.education.map((e) => ({
     "@type": "CollegeOrUniversity",
-    name: e.school.en,
+    name: e.school,
   })),
   knowsAbout: [
     ...profile.skills.flatMap((s) => s.items),

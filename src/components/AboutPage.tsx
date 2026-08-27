@@ -12,9 +12,7 @@ import {
   Server,
 } from "lucide-react";
 import { profile } from "@/data/profile";
-import { type Locale, href, HTML_LANG } from "@/i18n/config";
-import { getDictionary } from "@/i18n/dictionary";
-import LangSwitch from "@/components/LangSwitch";
+import { copy } from "@/content/copy";
 
 // ─── GitHub SVG Icon ────────────────────────────────────────────────────────
 
@@ -37,16 +35,16 @@ const GithubSvg = ({ className }: { className?: string }) => (
 
 // ─── Page Component ─────────────────────────────────────────────────────────
 
-export default function AboutPage({ lang }: { lang: Locale }) {
-  const d = getDictionary(lang);
+export default function AboutPage() {
+  const d = copy;
   const t = d.about;
 
   return (
-    <div lang={HTML_LANG[lang]} className="max-w-5xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
+    <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
       {/* ── HEADER NAV ── */}
       <header className="flex items-center justify-between border-b border-zinc-200 pb-4 mb-8">
         <Link
-          href={href(lang, "/")}
+          href="/"
           className="flex items-center gap-1 text-xs font-mono font-bold tracking-wider text-zinc-600 hover:text-black uppercase"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> {d.nav.backToHome}
@@ -55,7 +53,6 @@ export default function AboutPage({ lang }: { lang: Locale }) {
           <span className="hidden sm:inline font-mono text-[10px] text-zinc-400 uppercase tracking-widest">
             {t.breadcrumb}
           </span>
-          <LangSwitch lang={lang} path="/about" />
         </div>
       </header>
 
@@ -86,12 +83,12 @@ export default function AboutPage({ lang }: { lang: Locale }) {
                   {profile.name}
                 </h1>
                 <p className="font-mono text-sm text-red-700 font-semibold mt-1">
-                  {profile.title[lang]}
+                  {profile.title}
                 </p>
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3 font-mono text-xs text-zinc-600">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-zinc-400" />
-                    {profile.location[lang]}
+                    {profile.location}
                   </span>
                   <span className="flex items-center gap-1">
                     <Mail className="w-3.5 h-3.5 text-zinc-400" />
@@ -117,7 +114,7 @@ export default function AboutPage({ lang }: { lang: Locale }) {
               <Award className="w-4 h-4" /> {t.sectionAbout}
             </h2>
             <div className="space-y-4 font-serif-body text-[15px] text-zinc-800 leading-relaxed text-justify">
-              {profile.bio[lang].map((paragraph: string, idx: number) => (
+              {profile.bio.map((paragraph: string, idx: number) => (
                 <p key={idx}>{paragraph}</p>
               ))}
             </div>
@@ -137,23 +134,17 @@ export default function AboutPage({ lang }: { lang: Locale }) {
                   >
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
                       <span className="font-mono text-[11px] text-zinc-500 font-semibold">
-                        {r.period[lang]}
+                        {r.period}
                       </span>
                       <span className="font-mono text-[10px] uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded">
-                        {r.status[lang]}
+                        {r.status}
                       </span>
                     </div>
 
                     <h3 className="font-serif-body font-bold text-[17px] text-zinc-950 leading-snug">
-                      {lang === "vi" ? r.titleVi : r.titleEn}
+                      {r.title}
                     </h3>
-                    <p
-                      lang={lang === "vi" ? "en" : "vi"}
-                      className="font-serif-body italic text-[14px] text-zinc-600 leading-snug mt-1"
-                    >
-                      {lang === "vi" ? r.titleEn : r.titleVi}
-                    </p>
-                    <p className="font-mono text-[11px] text-zinc-500 mt-1.5">{r.venue[lang]}</p>
+                    <p className="font-mono text-[11px] text-zinc-500 mt-1.5">{r.venue}</p>
 
                     <dl className="mt-3 space-y-2.5">
                       <div>
@@ -161,7 +152,7 @@ export default function AboutPage({ lang }: { lang: Locale }) {
                           {t.researchQuestion}
                         </dt>
                         <dd className="font-serif-body text-[14px] text-zinc-700 leading-relaxed mt-0.5">
-                          {r.question[lang]}
+                          {r.question}
                         </dd>
                       </div>
                       <div>
@@ -169,13 +160,13 @@ export default function AboutPage({ lang }: { lang: Locale }) {
                           {t.researchMethod}
                         </dt>
                         <dd className="font-serif-body text-[14px] text-zinc-700 leading-relaxed mt-0.5">
-                          {r.method[lang]}
+                          {r.method}
                         </dd>
                       </div>
                     </dl>
 
                     <p className="font-mono text-[11px] text-zinc-600 leading-relaxed mt-3 pt-3 border-t border-dashed border-zinc-300">
-                      {r.honestNote[lang]}
+                      {r.honestNote}
                     </p>
 
                     <div className="flex flex-wrap gap-1.5 mt-3">
@@ -204,7 +195,7 @@ export default function AboutPage({ lang }: { lang: Locale }) {
 
               <div className="space-y-5">
                 {profile.systems.map((s) => (
-                  <article key={s.name.en} className="border-l-2 border-zinc-300 pl-4">
+                  <article key={s.name} className="border-l-2 border-zinc-300 pl-4">
                     <h3 className="font-sans font-bold text-sm text-zinc-900">
                       {s.url ? (
                         <a
@@ -213,23 +204,23 @@ export default function AboutPage({ lang }: { lang: Locale }) {
                           rel="noopener noreferrer"
                           className="hover:underline underline-offset-4 decoration-zinc-400"
                         >
-                          {s.name[lang]}
+                          {s.name}
                           <span className="font-mono text-[10px] text-zinc-400 ml-1.5">
                             {s.url.replace(/^https?:\/\//, "")} ↗
                           </span>
                         </a>
                       ) : (
-                        s.name[lang]
+                        s.name
                       )}
                     </h3>
                     <p className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 mt-0.5">
-                      {s.domain[lang]}
+                      {s.domain}
                     </p>
                     <p className="font-serif-body text-[13.5px] text-zinc-700 leading-snug mt-1.5">
-                      {s.summary[lang]}
+                      {s.summary}
                     </p>
                     <ul className="mt-2 space-y-1">
-                      {s.highlights[lang].map((h) => (
+                      {s.highlights.map((h) => (
                         <li
                           key={h}
                           className="font-serif-body text-[13px] text-zinc-600 leading-snug pl-3.5 relative before:content-['—'] before:absolute before:left-0 before:text-zinc-400"
@@ -279,12 +270,12 @@ export default function AboutPage({ lang }: { lang: Locale }) {
                     </div>
                     {/* Một câu: hệ thống là gì */}
                     <p className="font-serif-body text-[13.5px] text-zinc-700 leading-snug mb-2">
-                      {exp.summary[lang]}
+                      {exp.summary}
                     </p>
                     {/* Gạch đầu dòng: đã làm gì */}
-                    {exp.highlights[lang].length > 0 && (
+                    {exp.highlights.length > 0 && (
                       <ul className="mb-2.5 space-y-1">
-                        {exp.highlights[lang].map((h) => (
+                        {exp.highlights.map((h) => (
                           <li
                             key={h}
                             className="font-serif-body text-[13px] text-zinc-600 leading-snug pl-3.5 relative before:content-['—'] before:absolute before:left-0 before:text-zinc-400"
@@ -323,14 +314,14 @@ export default function AboutPage({ lang }: { lang: Locale }) {
                 <div className="absolute left-[-7px] top-1 w-3 h-3 rounded-full bg-zinc-400 border-2 border-white" />
                 <div className="ml-2">
                   <span className="font-mono text-[11px] text-zinc-500 font-semibold">
-                    {edu.period[lang]}
+                    {edu.period}
                   </span>
                   <h3 className="font-sans font-bold text-base text-zinc-900 mt-0.5">
-                    {edu.degree[lang]}
+                    {edu.degree}
                   </h3>
-                  <p className="font-mono text-xs text-zinc-500 mb-1">{edu.school[lang]}</p>
+                  <p className="font-mono text-xs text-zinc-500 mb-1">{edu.school}</p>
                   <p className="font-serif-body text-[14px] text-zinc-700 leading-relaxed">
-                    {edu.description[lang]}
+                    {edu.description}
                   </p>
                 </div>
               </div>
@@ -347,9 +338,9 @@ export default function AboutPage({ lang }: { lang: Locale }) {
             </h2>
             <div className="space-y-4">
               {profile.skills.map((skillGroup) => (
-                <div key={skillGroup.category.en}>
+                <div key={skillGroup.category}>
                   <h3 className="font-mono font-bold text-[11px] text-zinc-800 mb-1.5 uppercase tracking-wider">
-                    {skillGroup.category[lang]}
+                    {skillGroup.category}
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
                     {skillGroup.items.map((skill) => (
@@ -407,7 +398,7 @@ export default function AboutPage({ lang }: { lang: Locale }) {
             <ul className="space-y-2 font-sans text-xs">
               <li>
                 <Link
-                  href={`${href(lang, "/")}#publications`}
+                  href="/#publications"
                   className="text-zinc-700 hover:text-red-700 transition-colors flex items-center gap-1"
                 >
                   • Libraries & Packages
@@ -415,7 +406,7 @@ export default function AboutPage({ lang }: { lang: Locale }) {
               </li>
               <li>
                 <Link
-                  href={`${href(lang, "/")}#blog`}
+                  href="/#blog"
                   className="text-zinc-700 hover:text-red-700 transition-colors flex items-center gap-1"
                 >
                   • Technical Blog
@@ -423,7 +414,7 @@ export default function AboutPage({ lang }: { lang: Locale }) {
               </li>
               <li>
                 <Link
-                  href={`${href(lang, "/")}#contact`}
+                  href="/#contact"
                   className="text-zinc-700 hover:text-red-700 transition-colors flex items-center gap-1"
                 >
                   • Contact Form
