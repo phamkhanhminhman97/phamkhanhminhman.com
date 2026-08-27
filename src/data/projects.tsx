@@ -374,7 +374,7 @@ export function getRelatedPackages(
 /** Map from the URL slug to the package slug used in the blog */
 export function getBlogSlugForPackage(pkgId: string): string | undefined {
   const map: Record<string, string> = {
-    shopee: "shopee-api-integration",
+    shopee: "shopee-oauth-token-lifecycle-at-scale",
     tiktok: "safe-webhook-handling",
     lazada: "ecommerce-sdk-monorepo",
   };

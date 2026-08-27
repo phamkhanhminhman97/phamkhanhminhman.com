@@ -9,9 +9,9 @@ import React from "react";
  * duyệt; mọi thao tác đọc/ghi đi qua API của Worker (`/api/admin/*`), nơi giữ
  * mật khẩu và KV. Không có bí mật nào nằm trong bundle này.
  *
- * Phần THÂN bài là JSX trong `src/data/blog.tsx` — cố ý không sửa ở đây: một cái
- * form không thể round-trip JSX (bảng nhiều màu, khối code) mà không có nguy cơ
- * làm hỏng bài. Nút "Mở trong editor" đưa thẳng tới đúng file.
+ * Phần THÂN bài là JSX trong `src/data/blog/posts/<slug>.tsx` — cố ý không sửa ở
+ * đây: một cái form không thể round-trip JSX (bảng nhiều màu, khối code) mà
+ * không có nguy cơ làm hỏng bài. Nút "Mở trong editor" đưa thẳng tới đúng file.
  */
 
 interface Post {
@@ -252,7 +252,7 @@ export default function AdminPage() {
                     Xem
                   </a>
                   <a
-                    href={`vscode://file${REPO}/src/data/blog.tsx`}
+                    href={`vscode://file${REPO}/src/data/blog/posts/${post.slug}.tsx`}
                     className="font-mono text-[10px] uppercase text-zinc-500 hover:text-black"
                     title="Sửa nội dung bài trong VS Code (chỉ chạy khi mở từ máy của bạn)"
                   >
@@ -297,7 +297,7 @@ export default function AdminPage() {
         bài không còn nằm trong HTML, không chỉ bị giấu bằng CSS.{" "}
         <strong>Ghim</strong> đẩy bài lên đầu danh sách trang chủ.{" "}
         <strong>Thứ tự</strong> sắp xếp trong cùng nhóm. Sửa tiêu đề hay nội dung thì cần sửa{" "}
-        <code className="font-mono">src/data/blog.tsx</code> rồi deploy lại.
+        <code className="font-mono">src/data/blog/posts/&lt;slug&gt;.tsx</code> rồi deploy lại.
       </p>
     </main>
   );

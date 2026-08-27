@@ -274,7 +274,8 @@ Nhấp vào **Save and Deploy**. Cloudflare sẽ mất khoảng 1-2 phút để 
 
 Ẩn bài, ghim bài và đổi thứ tự hiển thị **ngay trên pkmm.online**, không cần build
 lại và không cần deploy lại. Sửa tiêu đề hay nội dung thì vẫn phải sửa
-`src/data/blog.tsx` rồi deploy — xem "Vì sao không sửa nội dung ở đây" bên dưới.
+`src/data/blog/posts/<slug>.tsx` rồi deploy — xem "Vì sao không sửa nội dung ở
+đây" bên dưới.
 
 ### Kiến trúc
 
@@ -348,7 +349,7 @@ SESSION_SECRET=<chuỗi bất kỳ, chỉ dùng ở local>
 
 ### Vì sao không sửa nội dung ở đây
 
-Thân bài là JSX trong `src/data/blog.tsx` — bảng nhiều màu, khối code, chú thích
+Thân bài là JSX trong `src/data/blog/posts/<slug>.tsx` — bảng nhiều màu, khối code, chú thích
 song ngữ. Một cái form không round-trip được thứ đó mà không có nguy cơ làm hỏng
 bài, và lỗi chỉ lộ ra lúc build. Nên admin chỉ quản lý metadata; nút "Sửa nội dung"
 mở thẳng file trong VS Code.

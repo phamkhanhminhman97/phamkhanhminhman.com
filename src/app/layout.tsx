@@ -60,7 +60,6 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
-  icons: { icon: "/favicon.ico" },
 };
 
 /** JSON-LD: thứ quyết định Google hiển thị bạn thế nào khi ai đó gõ đúng tên. */
