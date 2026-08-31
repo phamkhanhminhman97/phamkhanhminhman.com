@@ -48,6 +48,16 @@ export interface Research {
 
 export interface ProfileData {
   name: string;
+  /**
+   * Cách viết khác của CHÍNH cái tên đó — không phải biệt danh cho vui.
+   *
+   * Người Việt gõ tìm kiếm trên điện thoại hầu như không bỏ dấu, nên "pham
+   * khanh minh man" là truy vấn thật sự phổ biến hơn bản có dấu. Google KHÔNG
+   * tự suy ra hai chuỗi đó là một người nếu bản không dấu chưa từng xuất hiện
+   * trong nội dung trang. Liệt kê ở đây để chúng vào được cả JSON-LD
+   * (alternateName) lẫn phần chữ hiển thị.
+   */
+  alternateNames: string[];
   title: string;
   location: string;
   email: string;
@@ -62,6 +72,7 @@ export interface ProfileData {
 
 export const profile: ProfileData = {
   name: "Phạm Khánh Minh Mẫn",
+  alternateNames: ["Pham Khanh Minh Man", "PKMM"],
   title: "Backend Engineer · E-commerce API Integration · LLM-Agent Memory Research",
   location: "Da Nang, Vietnam",
   email: "phamkhanhminhman97@gmail.com",

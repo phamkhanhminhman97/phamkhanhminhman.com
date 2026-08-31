@@ -57,7 +57,18 @@ export const copy = {
     details: "Details →",
   },
   about: {
-    metaTitle: "About & Research",
+    /**
+     * Title đầy đủ, dùng ở dạng `absolute` (xem app/about/page.tsx).
+     *
+     * Trang /about là bản CV đầy đủ nhất trên site, nên nó là ứng viên số hai
+     * sau trang chủ cho một truy vấn thuần tên riêng. Title cũ "About &
+     * Research" không chứa tên nên tự loại mình khỏi cuộc đua đó.
+     *
+     * Kèm luôn bản không dấu trong ngoặc: đó là cách gõ phổ biến nhất từ điện
+     * thoại, và Google không tự nối hai chuỗi đó lại nếu bản không dấu chưa
+     * từng xuất hiện ở đâu trên trang.
+     */
+    metaTitle: "Phạm Khánh Minh Mẫn (Pham Khanh Minh Man) — CV, Backend Engineer",
     metaDescription:
       "Curriculum vitae of Phạm Khánh Minh Mẫn — backend engineer (NestJS, PostgreSQL, Redis, AWS) and graduate researcher on graph memory for LLM agents.",
     breadcrumb: "pkmm.online / about",

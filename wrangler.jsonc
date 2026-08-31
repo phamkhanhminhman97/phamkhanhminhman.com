@@ -26,5 +26,12 @@
   "kv_namespaces": [
     { "binding": "POST_META", "id": "3d764690bc6c492982b4b627f83ee088" }
   ],
+  // Domain chinh chuyen sang phamkhanhminhman.com - pkmm.online van tro vao
+  // cung Worker nay qua route cu (pkmm.online/*, www.pkmm.online/*) nen
+  // link cu khong chet, chi doi SITE_URL de canonical/OG tro ve ten mien moi.
+  "routes": [
+    { "pattern": "phamkhanhminhman.com", "custom_domain": true },
+    { "pattern": "www.phamkhanhminhman.com", "custom_domain": true }
+  ],
   "observability": { "enabled": true }
 }

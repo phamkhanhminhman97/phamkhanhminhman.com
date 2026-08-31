@@ -290,6 +290,26 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // Domain chính đã chuyển sang phamkhanhminhman.com. pkmm.online và
+    // www.<domain> vẫn được gắn Custom Domain (xem wrangler.jsonc) để link
+    // cũ không chết, nhưng mọi request trên các host đó chuyển vĩnh viễn
+    // (301) về apex mới — giữ đúng MỘT địa chỉ chính cho Google index,
+    // tránh bị tính là nội dung trùng lặp giữa nhiều domain.
+    const CANONICAL_HOST = "phamkhanhminhman.com";
+    if (url.hostname !== CANONICAL_HOST || url.protocol !== "https:") {
+      // Ép cả protocol lẫn hostname trong CÙNG một bước nhảy: Google Search
+      // Console (Change of address) kiểm tra "chuyển hướng 301 từ trang chủ"
+      // bằng cách gọi thẳng http://pkmm.online/ và đòi nhận về đúng 1 bước
+      // 301 tới domain mới. Trước đây chỉ đổi hostname nên một request
+      // http:// sẽ nhảy sang http://phamkhanhminhman.com/ (vẫn sai giao
+      // thức) — Cloudflare "Always Use HTTPS" ở cấp zone đã chen thêm một
+      // bước http→https TRƯỚC KHI request tới được Worker này, tạo thành
+      // chuỗi 2 bước mà công cụ của Google không theo hết.
+      url.protocol = "https:";
+      url.hostname = CANONICAL_HOST;
+      return Response.redirect(url.toString(), 301);
+    }
+
     if (url.pathname.startsWith("/api/admin/")) {
       return handleApi(request, env, url);
     }

@@ -19,9 +19,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.8,
     },
+    // `lastModified` lấy NGÀY THẬT của bài, không phải new Date().
+    //
+    // Trước đây mọi URL đều báo "vừa sửa lúc build", tức là mỗi lần deploy là
+    // cả sitemap tự nhận vừa thay đổi toàn bộ. Google đối chiếu với nội dung
+    // thật thấy không đổi gì, nên dần bỏ qua trường này của cả site — mất luôn
+    // tác dụng của nó với những bài thật sự có cập nhật.
     ...blogPosts.map((post) => ({
       url: `${BASE_URL}/blog/${post.slug}`,
-      lastModified: new Date(),
+      lastModified: new Date(post.date),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),

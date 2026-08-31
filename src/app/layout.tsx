@@ -22,7 +22,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: TITLE,
-    template: "%s — PKMM.ONLINE",
+    // Tên thật, không phải "PKMM.ONLINE". Mỗi trang con (bài viết, dự án) là
+    // một cơ hội để tên xuất hiện trong một <title> nữa; viết tắt tên miền thì
+    // bỏ phí cơ hội đó vì "PKMM.ONLINE" không khớp với cách ai đó gõ tìm tên.
+    template: "%s — Phạm Khánh Minh Mẫn",
   },
   description: DESCRIPTION,
   applicationName: "PKMM.ONLINE",
@@ -30,6 +33,9 @@ export const metadata: Metadata = {
   creator: profile.name,
   keywords: [
     "Phạm Khánh Minh Mẫn",
+    "Pham Khanh Minh Man",
+    "phamkhanhminhman",
+    "PKMM",
     "Backend Developer Đà Nẵng",
     "NestJS",
     "Shopee API",
@@ -65,11 +71,18 @@ export const metadata: Metadata = {
 const personJsonLd = {
   "@context": "https://schema.org",
   "@type": "Person",
+  // @id cố định biến khối này thành một thực thể có định danh, để các khối
+  // JSON-LD khác (WebSite bên dưới) trỏ về đúng cùng một người thay vì mô tả
+  // hai người trùng tên.
+  "@id": `${SITE_URL}/#person`,
   name: profile.name,
-  alternateName: "PKMM",
+  alternateName: profile.alternateNames,
   url: SITE_URL,
   email: `mailto:${profile.email}`,
   jobTitle: profile.title,
+  description: DESCRIPTION,
+  nationality: { "@type": "Country", name: "Vietnam" },
+  worksFor: { "@type": "Organization", name: "DiproTech" },
   address: {
     "@type": "PostalAddress",
     addressLocality: "Đà Nẵng",
@@ -86,6 +99,27 @@ const personJsonLd = {
   ],
 };
 
+/**
+ * Khối WebSite, trỏ ngược về Person ở trên qua @id.
+ *
+ * Vì sao cần: Person một mình chỉ nói "có người tên này". WebSite + publisher
+ * nói thêm "và đây là trang chính thức CỦA người đó" — đúng thứ Google cần để
+ * chọn hiển thị site này cho một truy vấn thuần tên riêng, thay vì xếp sau các
+ * hồ sơ mạng xã hội vốn có thẩm quyền tên miền cao hơn nhiều.
+ */
+const webSiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  url: SITE_URL,
+  name: `${profile.name} — ${profile.title}`,
+  alternateName: profile.alternateNames,
+  description: DESCRIPTION,
+  inLanguage: "en",
+  publisher: { "@id": `${SITE_URL}/#person` },
+  about: { "@id": `${SITE_URL}/#person` },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -97,6 +131,10 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
         />
         <a
           href="#main"

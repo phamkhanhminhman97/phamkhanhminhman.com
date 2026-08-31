@@ -331,9 +331,22 @@ export default function HomePage() {
 
               {/* Bio Paragraph */}
               <div className="flex-grow border-l-2 border-red-700 pl-5 font-serif-body text-[15px] leading-relaxed text-zinc-800 text-justify">
-                <p className="mb-3">
-                  <strong>{profile.name}</strong> — {t.intro[0]}
-                </p>
+                {/* H1 duy nhất của trang chủ, và nó phải là TÊN.
+
+                    Trước đây trang chủ không có h1 nào cả: tên chỉ nằm trong một
+                    <h2> ở thẻ hồ sơ bên sidebar. Với Google, h1 là tín hiệu mạnh
+                    nhất trả lời "trang này nói về ai" — thiếu nó thì một truy vấn
+                    đúng tên riêng phải dựa gần như hoàn toàn vào <title>, yếu hơn
+                    hẳn so với trang có tên xuất hiện nhất quán ở title + h1 +
+                    JSON-LD.
+
+                    Đặt ở đây chứ không đặt trên ảnh hero: h1 nên là dòng chữ đầu
+                    tiên có nghĩa trong luồng nội dung chính (<main>), và khối bio
+                    này chính là chỗ câu giới thiệu bắt đầu. */}
+                <h1 className="font-serif-body text-[15px] leading-relaxed text-zinc-800 mb-3 inline">
+                  <strong>{profile.name}</strong>
+                  <span className="font-normal"> ({profile.alternateNames.join(", ")}) — {t.intro[0]}</span>
+                </h1>
                 {t.intro.slice(1).map((para, i) => (
                   <p key={i} className={i === 0 ? "mb-3" : undefined}>
                     {para}
