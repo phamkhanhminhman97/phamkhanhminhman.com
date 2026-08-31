@@ -1,6 +1,7 @@
 import { blogPosts } from "@/data/blog";
 import { SITE_URL } from "@/lib/site";
 import { parseISODate } from "@/lib/date";
+import { profile } from "@/data/profile";
 
 /**
  * RSS 2.0 cho blog. Static export chỉ hỗ trợ GET và render sẵn lúc build
@@ -40,7 +41,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>PKMM.ONLINE — Technical Blog</title>
+    <title>${profile.name} — Technical Blog</title>
     <link>${SITE_URL}</link>
     <description>Backend engineering, e-commerce API integration, and applied AI research notes.</description>
     <language>en</language>

@@ -12,6 +12,8 @@ import {
 import { npmPackages, getPackageBySlug, getRelatedPackages, getBlogSlugForPackage } from "@/data/projects";
 import { blogPosts } from "@/data/blog";
 import NpmStatsCard from "@/components/NpmStatsCard";
+import { SITE_DOMAIN } from "@/lib/site";
+import { alternatesFor, openGraphFor } from "@/lib/seo";
 
 // ─── Static Generation ──────────────────────────────────────────────────────
 
@@ -38,9 +40,13 @@ export async function generateMetadata({
   return {
     title: pkg.name,
     description: pkg.description,
+    // Thiếu `alternates` là thiếu canonical link: bốn trang dự án đều không có
+    // thẻ đó trước đây, nên Google không được chỉ rõ đâu là địa chỉ chuẩn của
+    // từng trang — dễ bị coi là trùng lặp khi cùng nội dung mở được qua nhiều
+    // đường (có/không dấu gạch cuối, tên miền cũ...).
+    alternates: alternatesFor(`/projects/${pkg.id}`),
     openGraph: {
-      title: pkg.name,
-      description: pkg.description,
+      ...openGraphFor(`/projects/${pkg.id}`, pkg.name, pkg.description),
       type: "website",
     },
   };
@@ -96,7 +102,7 @@ export default async function ProjectDetailPage({
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
         <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">
-          pkmm.online / projects
+          {SITE_DOMAIN} / projects
         </span>
       </header>
 

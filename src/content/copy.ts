@@ -2,6 +2,8 @@
  * Every string the UI renders. The site is English-only: there is no locale
  * parameter, no dictionary lookup, and no translated variant to keep in sync.
  */
+import { SITE_DOMAIN } from "@/lib/site";
+
 export const copy = {
   nav: {
     publications: "PUBLICATIONS & SDKS",
@@ -71,7 +73,7 @@ export const copy = {
     metaTitle: "Phạm Khánh Minh Mẫn (Pham Khanh Minh Man) — CV, Backend Engineer",
     metaDescription:
       "Curriculum vitae of Phạm Khánh Minh Mẫn — backend engineer (NestJS, PostgreSQL, Redis, AWS) and graduate researcher on graph memory for LLM agents.",
-    breadcrumb: "pkmm.online / about",
+    breadcrumb: `${SITE_DOMAIN} / about`,
     sectionAbout: "About",
     sectionResearch: "Research",
     sectionSystems: "Systems",
@@ -100,7 +102,7 @@ export const copy = {
     emailPlaceholder: "name@example.com",
     messagePlaceholder: "I would like to discuss…",
     submit: "Send message",
-    subject: "New contact from pkmm.online",
+    subject: `New contact from ${SITE_DOMAIN}`,
     disabledNote: "The contact form is not configured yet. Email me directly:",
     sendEmail: "Email me",
     sending: "Sending…",

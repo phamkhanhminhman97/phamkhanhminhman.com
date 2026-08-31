@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import AboutPage from "@/components/AboutPage";
 import { copy } from "@/content/copy";
-import { alternatesFor, openGraphUrl } from "@/lib/seo";
+import { alternatesFor, openGraphFor } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
 import { profile } from "@/data/profile";
 
@@ -13,13 +13,7 @@ export const metadata: Metadata = {
   title: { absolute: t.metaTitle },
   description: t.metaDescription,
   alternates: alternatesFor("/about"),
-  openGraph: {
-    type: "profile",
-    title: t.metaTitle,
-    description: t.metaDescription,
-    locale: "en_US",
-    url: openGraphUrl("/about"),
-  },
+  openGraph: { ...openGraphFor("/about", t.metaTitle, t.metaDescription), type: "profile" },
 };
 
 export default function Page() {

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: "%s — Phạm Khánh Minh Mẫn",
   },
   description: DESCRIPTION,
-  applicationName: "PKMM.ONLINE",
+  applicationName: profile.name,
   authors: [{ name: profile.name, url: SITE_URL }],
   creator: profile.name,
   keywords: [
@@ -49,7 +49,12 @@ export const metadata: Metadata = {
     type: "profile",
     locale: "en_US",
     url: SITE_URL,
-    siteName: "PKMM.ONLINE",
+    // Tên thật, không phải "PKMM.ONLINE": Google dùng `og:site_name` để in tên
+    // site ngay dưới đường link trong kết quả tìm kiếm, và Facebook/Zalo in nó
+    // trên thẻ xem trước. Một chuỗi viết tắt ở đó không giúp ai nhận ra đây là
+    // trang của ai, trong khi tên đầy đủ thì vừa nhận ra được vừa khớp đúng
+    // truy vấn mà người ta gõ để tìm.
+    siteName: profile.name,
     title: TITLE,
     description: DESCRIPTION,
     firstName: "Mẫn",

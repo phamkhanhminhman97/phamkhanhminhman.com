@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { profile } from "@/data/profile";
 import { copy } from "@/content/copy";
+import { SITE_DOMAIN } from "@/lib/site";
 
 // ─── GitHub SVG Icon ────────────────────────────────────────────────────────
 
@@ -427,7 +428,7 @@ export default function AboutPage() {
 
       {/* ── FOOTER ── */}
       <footer className="editorial-border-double mt-12 py-6 text-center font-mono text-[10px] text-zinc-500">
-        <div>&copy; {new Date().getFullYear()} PKMM.ONLINE. All rights reserved.</div>
+        <div>&copy; {new Date().getFullYear()} {SITE_DOMAIN}. All rights reserved.</div>
       </footer>
     </div>
   );

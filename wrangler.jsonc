@@ -1,6 +1,13 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "pkmm-online",
+  // Tên Worker trên Cloudflare. PHẢI khớp đúng Worker đang phục vụ tên miền,
+  // nếu không `wrangler deploy` sẽ tạo ra một Worker THỨ HAI hoàn toàn mới:
+  // không có secret (ADMIN_PASSWORD, SESSION_SECRET), không gắn tên miền nào,
+  // nên deploy báo thành công mà trang thật thì không hề đổi — rất khó nhận ra.
+  //
+  // Worker cũ tên `pkmm-online` đã được đổi tên thành `phamkhanhminhman` trên
+  // Cloudflare khi chuyển tên miền, nhưng file này chưa cập nhật theo.
+  "name": "phamkhanhminhman",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-15",
   "assets": {

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { SITE_DOMAIN } from "@/lib/site";
 
 /**
  * Trang quản trị bài viết.
@@ -163,7 +164,7 @@ export default function AdminPage() {
     return (
       <main className="max-w-sm mx-auto px-4 py-24 font-sans">
         <h1 className="font-sans font-bold text-lg text-black mb-1">Quản trị bài viết</h1>
-        <p className="text-xs text-zinc-500 mb-6">pkmm.online</p>
+        <p className="text-xs text-zinc-500 mb-6">{SITE_DOMAIN}</p>
         <form onSubmit={login} className="space-y-3">
           <input
             type="password"

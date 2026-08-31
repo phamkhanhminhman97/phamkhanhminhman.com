@@ -1,4 +1,4 @@
- Xây dựng Website pkmm.online
+ Xây dựng Website phamkhanhminhman.com
 
 ### 2.1 Tech Stack Đề xuất
 
@@ -8,14 +8,14 @@
 | **Styling** | Tailwind CSS | Nhanh, responsive, phổ biến |
 | **Content** | MDX / Contentlayer | Viết blog bằng markdown, type-safe |
 | **Deployment** | Vercel | Free, tích hợp GitHub, auto-deploy |
-| **Domain** | pkmm.online (đã có) | - |
+| **Domain** | phamkhanhminhman.com (đã có) | - |
 | **Analytics** | Google Analytics / Plausible | Theo dõi traffic |
 | **UI Components** | shadcn/ui hoặc Radix UI | Accessible, đẹp, dễ custom |
 
 ### 2.2 Cấu trúc Pages
 
 ```
-pkmm.online/
+phamkhanhminhman.com/
 ├── /                          # Landing page
 │   ├── Hero section
 │   ├── Featured projects
@@ -116,7 +116,7 @@ graph TB
 
     subgraph "Deployment - Vercel"
         M[GitHub Repo] --> N[Vercel Deploy]
-        N --> O[pkmm.online]
+        N --> O[phamkhanhminhman.com]
     end
 ```
 
@@ -195,7 +195,7 @@ graph LR
 | **GitHub Profile README** | Ấn tượng với nhà tuyển dụng, đối tác |
 | **Badges** | Tăng độ tin cậy, chuyên nghiệp |
 | **Issue/PR Templates** | Tiết kiệm thời gian, chuẩn hóa quy trình |
-| **pkmm.online** | Personal brand, SEO, portfolio |
+| **phamkhanhminhman.com** | Personal brand, SEO, portfolio |
 | **Blog** | Thể hiện chuyên môn, thu hút traffic |
 | **Project Pages** | Giúp người dùng hiểu và sử dụng thư viện dễ hơn |
 
@@ -204,6 +204,6 @@ graph LR
 ## Ghi chú
 
 - Website có thể deploy hoàn toàn miễn phí trên Vercel
-- Domain pkmm.online cần trỏ DNS về Vercel
+- Domain phamkhanhminhman.com cần trỏ DNS về Vercel
 - Có thể dùng GitHub Actions để tự động sync npm stats lên website
 - Blog content nên viết song ngữ Anh-Việt để tiếp cận nhiều đối tượng hơn

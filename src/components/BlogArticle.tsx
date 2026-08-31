@@ -3,6 +3,7 @@ import Link from "next/link";
 import { blogPosts } from "@/data/blog";
 import { formatDate } from "@/lib/date";
 import { copy } from "@/content/copy";
+import { SITE_DOMAIN } from "@/lib/site";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 
 export default function BlogArticle({
@@ -25,7 +26,7 @@ export default function BlogArticle({
           <ArrowLeft className="w-3.5 h-3.5" /> {d.nav.backToHome}
         </Link>
         <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">
-          pkmm.online / blog
+          {SITE_DOMAIN} / blog
         </span>
       </header>
 

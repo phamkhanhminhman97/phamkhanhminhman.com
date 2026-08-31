@@ -1,10 +1,8 @@
-# PKMM.ONLINE - Portfolio & Blog
+# phamkhanhminhman.com - Portfolio & Blog
 
 Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh Mẫn** — xây dựng bằng **Next.js 16.2.6 (App Router)**, **Tailwind CSS v4**, **TypeScript 5** và xuất bản dưới dạng **Static Export (HTML/CSS/JS)** lên **Cloudflare Pages**. Giao diện được thiết kế theo phong cách báo chí học thuật (academic-editorial) sang trọng tối giản.
 
-🌐 **Website:** [
-pkmm-online.phamkhanhminhman97.workers.dev](
-pkmm-online.phamkhanhminhman97.workers.dev)
+🌐 **Website:** [phamkhanhminhman.com](https://phamkhanhminhman.com)
 
 ---
 
@@ -228,14 +226,14 @@ Khi bạn đẩy code lên GitHub, Cloudflare Pages sẽ tự động nhận di�
 
 ### Bước 1: Đẩy mã nguồn lên GitHub
 
-Nếu bạn chưa tạo repo trên GitHub, hãy tạo một repo trống tên `pkmm.online` và chạy lệnh sau ở thư mục local để push code:
+Nếu bạn chưa tạo repo trên GitHub, hãy tạo một repo trống tên `phamkhanhminhman.com` và chạy lệnh sau ở thư mục local để push code:
 
 ```bash
 git init
 git add .
 git commit -m "feat: init portfolio website"
 git branch -M main
-git remote add origin git@github.com:YOUR_GITHUB_USERNAME/pkmm.online.git
+git remote add origin git@github.com:YOUR_GITHUB_USERNAME/phamkhanhminhman.com.git
 git push -u origin main
 ```
 *(Thay thế `YOUR_GITHUB_USERNAME` bằng username GitHub của bạn).*
@@ -246,12 +244,12 @@ git push -u origin main
 2. Chọn **Workers & Pages** ở menu bên trái.
 3. Nhấp vào nút **Create Application**, sau đó chọn tab **Pages**.
 4. Chọn **Connect to Git** và liên kết với tài khoản GitHub của bạn.
-5. Chọn repository `pkmm.online` mà bạn vừa push code lên.
+5. Chọn repository `phamkhanhminhman.com` mà bạn vừa push code lên.
 
 ### Bước 3: Cấu hình Build Settings trên Cloudflare
 
 Tại trang cấu hình deploy, bạn điền các thông tin sau:
-- **Project name:** `pkmm-online` (hoặc tùy bạn đặt).
+- **Project name:** `phamkhanhminhman` (hoặc tùy bạn đặt).
 - **Production branch:** `main`.
 - **Framework preset:** Chọn **Next.js (Static HTML Export)**.
 - **Build command:** `npm run build`.
@@ -261,18 +259,18 @@ Tại trang cấu hình deploy, bạn điền các thông tin sau:
 
 Nhấp vào **Save and Deploy**. Cloudflare sẽ mất khoảng 1-2 phút để build và cấp cho bạn một domain chạy thử miễn phí dạng `*.pages.dev`.
 
-### Bước 4: Trỏ Custom Domain `pkmm.online` về Cloudflare Pages
+### Bước 4: Trỏ Custom Domain `phamkhanhminhman.com` về Cloudflare Pages
 
 1. Tại dashboard dự án Pages vừa tạo, chuyển sang tab **Custom Domains**.
 2. Nhấp vào **Set up a custom domain**.
-3. Nhập tên miền của bạn: `pkmm.online` và làm theo các bước tiếp theo.
+3. Nhập tên miền của bạn: `phamkhanhminhman.com` và làm theo các bước tiếp theo.
 4. Cloudflare sẽ tự động cập nhật các bản ghi DNS cần thiết (CNAME trỏ về Pages của bạn) và kích hoạt SSL (HTTPS) hoàn toàn miễn phí.
 
 ---
 
 ## Trang quản trị bài viết (`/admin`)
 
-Ẩn bài, ghim bài và đổi thứ tự hiển thị **ngay trên pkmm.online**, không cần build
+Ẩn bài, ghim bài và đổi thứ tự hiển thị **ngay trên phamkhanhminhman.com**, không cần build
 lại và không cần deploy lại. Sửa tiêu đề hay nội dung thì vẫn phải sửa
 `src/data/blog/posts/<slug>.tsx` rồi deploy — xem "Vì sao không sửa nội dung ở
 đây" bên dưới.
@@ -365,4 +363,4 @@ mở thẳng file trong VS Code.
 
 ## Giấy phép
 
-© 2026 PKMM.ONLINE. All rights reserved.
+© 2026 phamkhanhminhman.com. All rights reserved.

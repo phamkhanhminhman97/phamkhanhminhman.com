@@ -8,6 +8,7 @@ import { profile } from "@/data/profile";
 import { formatDayMonth } from "@/lib/date";
 import { hiddenSlugs } from "@/lib/post-visibility";
 import { copy } from "@/content/copy";
+import { SITE_DOMAIN } from "@/lib/site";
 
 /** Khoá Web3Forms nạp lúc build. Không có -> phần liên hệ rơi về mailto. */
 const WEB3FORMS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_KEY ?? "";
@@ -74,7 +75,7 @@ export default function HomePage() {
     const body = new FormData(form);
     body.append("access_key", WEB3FORMS_KEY);
     body.append("subject", d.contact.subject);
-    body.append("from_name", "pkmm.online");
+    body.append("from_name", SITE_DOMAIN);
 
     try {
       const res = await fetch("https://api.web3forms.com/submit", { method: "POST", body });
@@ -772,7 +773,7 @@ export default function HomePage() {
       {/* FOOTER SECTION */}
       <footer className="editorial-border-double mt-12 py-6 text-center font-mono text-[10px] text-zinc-500">
         <div>
-          &copy; {new Date().getFullYear()} PKMM.ONLINE. All rights reserved.
+          &copy; {new Date().getFullYear()} {SITE_DOMAIN}. All rights reserved.
         </div>
         <div className="mt-1">
           Designed with editorial-academic style. Hosted on Cloudflare Pages.

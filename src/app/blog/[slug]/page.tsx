@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import BlogArticle from "@/components/BlogArticle";
 import { blogPosts } from "@/data/blog";
-import { alternatesFor, openGraphUrl } from "@/lib/seo";
+import { alternatesFor, openGraphFor } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
 import { profile } from "@/data/profile";
 
@@ -24,11 +24,8 @@ export async function generateMetadata({
     description: post.description,
     alternates: alternatesFor(`/blog/${post.slug}`),
     openGraph: {
+      ...openGraphFor(`/blog/${post.slug}`, post.title, post.description),
       type: "article",
-      title: post.title,
-      description: post.description,
-      locale: "en_US",
-      url: openGraphUrl(`/blog/${post.slug}`),
     },
   };
 }
