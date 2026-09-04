@@ -499,6 +499,36 @@ Bốn lượt thử trên máy thật, đối chiếu với sự thật do chủ
 Mac mini là ví dụ rõ nhất cho việc **không được suy đời máy tính từ độ phân giải**: máy này
 không có màn hình tích hợp, con số đo được hoàn toàn là của màn ngoài cắm vào.
 
+### Bắt máy quét giả trình duyệt
+
+Một máy quét thật đã lọt qua vòng lọc đầu vì khai chuỗi trông như Chrome. Nó bị bắt nhờ
+**chuỗi tự mâu thuẫn**:
+
+```
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.54 ... Chrome/90.0.5 Safari/537.36
+                                            ^^^^^^             ^^^^^^^
+                                    WebKit bản 2011      Chrome bản 2021
+```
+
+Chrome thật dùng `WebKit/537.36` cố định từ 2013 tới nay, và số hiệu luôn có **bốn** phần
+(`90.0.4430.212`) chứ không phải ba (`90.0.5`). Người viết máy quét ghép chuỗi từ nhiều mảnh
+rời nên hay để lộ kiểu này; trình duyệt thật không bao giờ sai chính tả về chính nó.
+
+Bằng chứng phụ trong cùng lượt đó: cùng một IP, hai request cách nhau 3 giây nhưng **đổi
+chuỗi nhận dạng** — cái sau tự khai `Go-http-client/1.1`. Rồi vào thẳng `/` và `/sitemap.xml`,
+đúng hành vi lập chỉ mục.
+
+Ba lớp nhận diện hiện có, xếp theo độ chắc chắn:
+
+| Lớp | Bắt được gì | Điểm yếu |
+| --- | --- | --- |
+| Hành vi (`human >= 2`) | Người thật, không thể giả | Cần JavaScript chạy được |
+| Chuỗi tự mâu thuẫn (`fakeUA`) | Máy quét cố giả trình duyệt | Máy quét viết cẩn thận sẽ lọt |
+| Từ khoá + nhà mạng máy chủ | Máy quét tự khai, và loại chạy trên cloud thuê | Dương tính giả với VPN doanh nghiệp |
+
+Nhận nhầm không nguy hiểm: nếu đó là người thật, script chạy được và có tương tác sẽ **tự gỡ
+cờ bot** (xem `handleBeacon`). Hệ thống luôn ưu tiên bằng chứng hành vi hơn lời tự khai.
+
 Về bảo mật: `/api/pulse` không cần đăng nhập (người xem lạ mới là đối tượng ghi), nên nó
 chỉ `UPDATE` đúng hàng có `vid` khớp — không bao giờ `INSERT`, và `vid` phải đúng dạng UUID do
 Worker sinh ra. Mọi trường đều bị chặn độ dài và ép kiểu; `human`/`dwell`/`scroll` chỉ đi lên

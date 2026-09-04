@@ -122,7 +122,36 @@ function slugOf(pathname: string): string | null {
  * Cờ này ghi kèm mỗi hàng nên vẫn xem lại được bot khi cần.
  */
 const BOT_UA =
-  /bot|crawl|spider|slurp|facebookexternalhit|embedly|preview|monitor|curl|wget|python-requests|headless|lighthouse|semrush|ahrefs|dataprovider|scrapy/i;
+  /bot|crawl|spider|slurp|facebookexternalhit|embedly|preview|monitor|curl|wget|python-requests|headless|lighthouse|semrush|ahrefs|dataprovider|scrapy|go-http|java\/|okhttp|axios|node-fetch|libwww|httpclient|got \(|guzzle|postman|insomnia|zgrab|masscan|nmap/i;
+
+/**
+ * Chuỗi nhận dạng TỰ MÂU THUẪN — dấu hiệu giả mạo chắc chắn nhất.
+ *
+ * Một máy quét thật sự bắt được nhờ chỗ này: nó khai
+ * `"AppleWebKit/534.54 ... Chrome/90.0.5"` — WebKit 534 là bản năm 2011 (đi
+ * cùng Chrome 12–15), còn Chrome 90 là năm 2021. Hai con số cách nhau mười
+ * năm nên không thể cùng tồn tại. Chrome thật dùng `WebKit/537.36` cố định từ
+ * 2013 tới giờ, và số hiệu luôn có bốn phần (`90.0.4430.212`) chứ không phải
+ * ba (`90.0.5`).
+ *
+ * Người viết máy quét ghép chuỗi từ nhiều mảnh rời nên hay để lộ kiểu này,
+ * trong khi trình duyệt thật không bao giờ sai chính tả về chính nó.
+ */
+function fakeUA(ua: string): boolean {
+  const chrome = ua.match(/Chrome\/(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?/);
+  if (chrome) {
+    const webkit = ua.match(/AppleWebKit\/(\d+)\.(\d+)/);
+    // Chrome từ bản 28 (2013) trở đi luôn đi kèm WebKit 537.36.
+    if (webkit && Number(chrome[1]) >= 28 && Number(webkit[1]) < 537) return true;
+    // Thiếu số thứ tư: Chrome thật luôn có đủ bốn phần.
+    if (!chrome[4] && Number(chrome[1]) >= 20) return true;
+  }
+  // Khai là Safari trên máy tính nhưng thiếu "Version/" — Safari thật luôn có.
+  if (/Safari\//.test(ua) && /Macintosh/.test(ua) && !/Version\/|Chrome|CriOS|Edg/.test(ua)) {
+    return true;
+  }
+  return false;
+}
 
 /** Cắt chuỗi trước khi ghi: một User-Agent giả mạo có thể dài vài KB. */
 const cut = (s: string | null | undefined, n: number) => (s ?? "").slice(0, n);
@@ -157,6 +186,17 @@ function num(v: unknown, max: number): number {
 }
 
 /**
+ * Nhà mạng là hạ tầng máy chủ thuê, không phải mạng dân dụng.
+ *
+ * Người thật vào từ Viettel, VNPT, FPT, hoặc mạng của công ty. Một lượt truy
+ * cập đến từ trung tâm dữ liệu gần như chắc chắn là máy — trừ vài trường hợp
+ * hiếm như người dùng VPN doanh nghiệp. Nên đây là tín hiệu để NGHI NGỜ, cộng
+ * với các dấu hiệu khác, chứ không tự nó kết luận.
+ */
+const HOSTING_ASN =
+  /amazon|aws|google cloud|microsoft|azure|digitalocean|linode|vultr|hetzner|ovh|contabo|scaleway|ucloud|alibaba|tencent|oracle cloud|cloudflare|leaseweb|choopa|datacamp|m247|colocrossing|hostinger|godaddy|namecheap|servers|hosting|datacenter|data center/i;
+
+/**
  * Ghi một lượt truy cập.
  *
  * Luôn gọi qua `ctx.waitUntil` — người xem không phải chờ D1 ghi xong mới thấy
@@ -178,6 +218,14 @@ async function logVisit(request: Request, env: Env, url: URL, vid: string): Prom
   const bv = (cf as { botManagement?: { verifiedBot?: boolean } }).botManagement;
   const verifiedBot = bv?.verifiedBot ? "cloudflare" : "";
 
+  // Gộp mọi dấu hiệu lại. Từ khoá trong chuỗi chỉ bắt được máy quét TỰ KHAI;
+  // `fakeUA` bắt loại cố giả trình duyệt nhưng ghép chuỗi sai; nhà mạng máy chủ
+  // là tín hiệu bổ sung. Trình duyệt thật sẽ gỡ cờ này khi script chạy được
+  // và có tương tác (xem `handleBeacon`), nên nhận nhầm cũng tự sửa được.
+  const asn = cut(cf.asOrganization as string | undefined, 96);
+  const looksBot =
+    BOT_UA.test(ua) || !ua || Boolean(verifiedBot) || fakeUA(ua) || HOSTING_ASN.test(asn);
+
   await env.DB.prepare(
     `INSERT INTO visits
        (ts, ip, country, city, region, asn, path, referer, ua, bot,
@@ -191,11 +239,11 @@ async function logVisit(request: Request, env: Env, url: URL, vid: string): Prom
       cut(cf.country as string | undefined, 8),
       cut(cf.city as string | undefined, 64),
       cut(cf.region as string | undefined, 64),
-      cut(cf.asOrganization as string | undefined, 96),
+      asn,
       cut(url.pathname, 200),
       cut(request.headers.get("referer"), 200),
       cut(ua, 300),
-      BOT_UA.test(ua) || !ua || verifiedBot ? 1 : 0,
+      looksBot ? 1 : 0,
       vid,
       cut(cf.latitude as string | undefined, 24),
       cut(cf.longitude as string | undefined, 24),

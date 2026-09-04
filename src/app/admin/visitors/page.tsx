@@ -151,7 +151,14 @@ function source(referer: string): string {
  * ở lại đủ lâu, 1 nghĩa là JavaScript chạy được nhưng chưa thấy tương tác, 0
  * nghĩa là chỉ có một request trần — thứ mà `curl` hay máy quét cũng tạo ra được.
  */
-function trust(d: { human: number; verified_bot: string; gpu: string }): {
+function trust(d: {
+  human: number;
+  verified_bot: string;
+  gpu: string;
+  ua?: string;
+  asn?: string;
+  proto?: string;
+}): {
   label: string;
   cls: string;
   why: string;
@@ -176,11 +183,63 @@ function trust(d: { human: number; verified_bot: string; gpu: string }): {
         ? "JavaScript chạy được và đọc ra được card đồ hoạ thật, nhưng chưa thấy tương tác."
         : "JavaScript chạy được nhưng chưa thấy tương tác — có thể mở rồi đóng ngay.",
     };
+
+  // Chưa có tín hiệu trình duyệt: nói rõ VÌ SAO nghi ngờ, thay vì để người
+  // đọc tự đoán. Các dấu hiệu này cộng dồn lại thì gần như chắc chắn là máy.
+  const clues = botClues(d.ua ?? "", d.asn ?? "", d.proto ?? "");
+  if (clues.length > 0)
+    return {
+      label: "Gần như chắc là máy",
+      cls: "bg-red-50 text-red-800 border-red-200",
+      why: `Không có tín hiệu trình duyệt nào, cộng thêm: ${clues.join("; ")}.`,
+    };
+
   return {
     label: "Chưa rõ",
     cls: "bg-amber-50 text-amber-800 border-amber-200",
     why: "Chỉ thấy một request trần, không có tín hiệu nào từ trình duyệt. Có thể là máy quét, công cụ xem trước link, hoặc người chặn JavaScript.",
   };
+}
+
+/**
+ * Liệt kê dấu hiệu máy, bằng lời người đọc hiểu được.
+ *
+ * Viết ra thay vì chỉ trả về đúng/sai, vì "vì sao nghi ngờ" mới là thứ giúp
+ * bạn tự phán đoán — nhất là khi hệ thống đoán sai.
+ */
+function botClues(ua: string, asn: string, proto: string): string[] {
+  const out: string[] = [];
+
+  const chrome = ua.match(/Chrome\/(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?/);
+  if (chrome) {
+    const webkit = ua.match(/AppleWebKit\/(\d+)\./);
+    if (webkit && Number(chrome[1]) >= 28 && Number(webkit[1]) < 537) {
+      out.push(
+        `chuỗi nhận dạng tự mâu thuẫn (WebKit ${webkit[1]} là bản ~2011 nhưng khai Chrome ${chrome[1]} của ~2021)`,
+      );
+    }
+    if (!chrome[4] && Number(chrome[1]) >= 20) {
+      out.push("số hiệu Chrome thiếu phần cuối (bản thật luôn có bốn số)");
+    }
+  }
+
+  if (/^(Go-http|python|curl|wget|java|okhttp|axios|node-fetch|libwww|postman)/i.test(ua)) {
+    out.push("tự khai là thư viện gọi HTTP, không phải trình duyệt");
+  }
+
+  if (
+    /amazon|aws|google cloud|azure|digitalocean|linode|vultr|hetzner|ovh|ucloud|alibaba|tencent|leaseweb|m247|hosting|datacenter/i.test(
+      asn,
+    )
+  ) {
+    out.push("đến từ trung tâm dữ liệu thuê, không phải mạng dân dụng");
+  }
+
+  if (proto === "HTTP/1.1") {
+    out.push("dùng HTTP/1.1 trong khi trình duyệt hiện nay đi HTTP/2 hoặc HTTP/3");
+  }
+
+  return out;
 }
 
 /** "2 phút 15 giây" dễ đọc hơn "135". */
