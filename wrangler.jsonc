@@ -17,12 +17,23 @@
     "not_found_handling": "404-page",
     // Chỉ những đường dẫn này đi qua Worker; mọi thứ khác (ảnh, JS, CSS, trang
     // about...) đi thẳng tới Asset Worker, không tốn một lần gọi Worker nào.
+    //
+    // `/about` và `/projects/*` được thêm vào khi làm nhật ký lượt xem: Worker
+    // chỉ ghi được lượt truy cập mà nó NHÌN THẤY, nên trang nào không nằm
+    // trong danh sách này sẽ không bao giờ xuất hiện trong /admin/visitors.
+    // Cố ý KHÔNG khai "/*": làm vậy thì mỗi file ảnh, CSS, JS cũng tốn một
+    // lượt gọi Worker và đẻ ra hàng chục hàng rác cho mỗi lần mở trang.
     "run_worker_first": [
-      "/api/admin/*",
+      // Cả /api/*, không chỉ /api/admin/*: /api/pulse là nơi trình duyệt báo
+      // về thông tin máy và tương tác. Thiếu dòng này thì lượt POST đó rơi vào
+      // Asset Worker và bị trả 405 — Worker không bao giờ thấy nó.
+      "/api/*",
       "/",
       "/vi",
       "/vi/*",
       "/blog/*",
+      "/about",
+      "/projects/*",
       "/rss.xml",
       "/sitemap.xml"
     ]
@@ -32,6 +43,15 @@
   // rơi dữ liệu admin đã có trong namespace này.
   "kv_namespaces": [
     { "binding": "POST_META", "id": "3d764690bc6c492982b4b627f83ee088" }
+  ],
+  // Nhật ký lượt truy cập (bảng `visits`). Dùng D1 chứ không phải KV vì cần
+  // truy vấn theo khoảng thời gian và gộp theo IP — xem migrations/0001_visits.sql.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "phamkhanhminhman",
+      "database_id": "2e8ea837-b1df-40b3-8e07-caa5cb511806"
+    }
   ],
   // Domain chinh chuyen sang phamkhanhminhman.com - pkmm.online van tro vao
   // cung Worker nay qua route cu (pkmm.online/*, www.pkmm.online/*) nen

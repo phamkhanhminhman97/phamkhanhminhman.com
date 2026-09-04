@@ -197,6 +197,13 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href="/admin/visitors"
+            className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 hover:text-black px-2 py-2"
+            title="Xem IP và vị trí của những người đã ghé trang"
+          >
+            Lượt xem
+          </a>
           <button
             onClick={save}
             disabled={!dirty || busy}

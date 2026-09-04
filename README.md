@@ -361,6 +361,159 @@ mở thẳng file trong VS Code.
   bảo vệ thật là mật khẩu.
 - Ghi metadata chỉ nhận đúng ba trường `hidden` / `pinned` / `order`, mọi thứ khác bị bỏ.
 
+## Nhật ký lượt xem (`/admin/visitors`)
+
+Xem IP, vị trí và nhà mạng của những người đã ghé trang.
+
+### Vì sao phải tự làm
+
+Cloudflare có sẵn ba công cụ, nhưng không cái nào dùng được trên gói Free của zone này:
+
+| Công cụ | Cho biết IP? | Có trên gói Free? |
+| --- | --- | --- |
+| Web Analytics | Không — cố ý không lưu IP, không cookie | Có |
+| Instant Logs | Có | **Không** — từ gói Business |
+| Logpush | Có | **Không** — từ gói Pro / Workers Paid |
+| Security Events | Có, nhưng chỉ request bị chặn | Có |
+
+Nên Worker tự ghi lấy. IP thật nằm sẵn ở header `cf-connecting-ip` (Cloudflare gắn ở biên,
+client không giả mạo được), vị trí và nhà mạng nằm trong `request.cf`.
+
+### Kiến trúc
+
+- Ghi vào D1 (`migrations/0001_visits.sql`), không phải KV: cần truy vấn theo khoảng thời
+  gian và gộp theo IP. Free tier D1 tính theo **số hàng** (5 triệu đọc / 100.000 ghi mỗi ngày),
+  còn KV tính theo **số lượt gọi** (100.000/ngày) — với một trang cá nhân thì D1 rộng rãi hơn nhiều.
+- Ghi qua `ctx.waitUntil` nên người xem không phải chờ. D1 lỗi thì nuốt im lặng: nhật ký là
+  thứ phụ, không được phép làm hỏng site.
+- Chỉ ghi được đường dẫn nào có trong `assets.run_worker_first` (`wrangler.jsonc`). Ảnh, CSS, JS
+  đi thẳng tới Asset Worker nên không được ghi — chủ ý, nếu không mỗi lần mở trang sẽ đẻ ra
+  hàng chục dòng rác.
+- Bot được đánh dấu **lúc ghi** (`bot` = 1) chứ không lọc lúc đọc, và mặc định bị giấu — không
+  thì Googlebot với máy quét uptime lấp hết danh sách người thật.
+- Dữ liệu tự xoá sau 90 ngày, dọn theo xác suất ~1/200 lượt xem thay vì nuôi thêm Cron Trigger.
+
+### Làm sao biết là người thật, không phải bot
+
+Đọc chuỗi User-Agent là cách yếu: máy quét chép nguyên chuỗi của Chrome rất dễ, và chuỗi
+hiện đại còn bị cố tình làm mờ (mọi iPhone khai giống hệt nhau). Nên mỗi trang nhúng thêm
+một đoạn script ~1KB (`beaconScript()` trong `worker/index.ts`) báo về `/api/pulse` ở ba mốc:
+
+| Mức | Nghĩa là | Bằng chứng |
+| --- | --- | --- |
+| `human = 0` | Chưa rõ | Chỉ có một request trần — `curl` cũng tạo ra được |
+| `human = 1` | Trình duyệt thật | JavaScript chạy được, đọc ra được màn hình và card đồ hoạ |
+| `human = 2` | **Người thật** | Có cuộn / bấm / ở lại trên 15 giây |
+
+Mức 2 là thứ máy quét gần như không giả được: phải vừa chạy JavaScript vừa có hành vi.
+
+Script cũng lấp những chỗ Cloudflare không biết: tên chip đồ hoạ qua WebGL (nói được đời
+máy khi User-Agent đã giấu), tên máy qua Client Hints, độ phân giải, số nhân CPU, RAM,
+múi giờ trình duyệt. **Múi giờ trình duyệt lệch với múi giờ theo IP là dấu hiệu VPN** —
+trang quản trị gắn nhãn `VPN?` cho trường hợp đó.
+
+Ngoài ra `cid` (mã máy lưu trong localStorage) là thứ nhận ra "vẫn người đó" khi IP di động
+đổi liên tục — gộp theo IP thôi thì một người sẽ bị xé thành nhiều dòng.
+
+### Đọc đúng đời máy và phiên bản iOS
+
+Hai lượt thử trên **cùng một chiếc iPhone 12 chạy iOS 27** cho ra hai chuỗi nhận dạng
+mâu thuẫn nhau:
+
+| Trình duyệt | Chuỗi khai | Sự thật |
+| --- | --- | --- |
+| Chrome iOS | `CPU iPhone OS 27_0_0 … CriOS/152` | Số ở `OS` **đúng** |
+| Safari iOS | `CPU iPhone OS 18_7 … Version/27.0` | Số ở `OS` **sai**, số đúng nằm ở `Version/` |
+
+Safari cố tình đóng băng `18_7` để không làm hỏng các trang cũ dò phiên bản, rồi chuyển số
+thật sang `Version/`. Đọc bằng một quy tắc chung là sai một trong hai trường hợp, nên
+`osVersion()` tách riêng nhánh Safari.
+
+**Đời máy suy từ độ phân giải, không từ chuỗi nhận dạng.** Trên iOS thì:
+
+- WebGL trả về đúng chuỗi `"Apple GPU"` cho mọi máy — đã kiểm chứng, vô dụng để phân biệt.
+- Client Hints (thứ cho ra `"Pixel 8"` trên Android) thì Apple không hỗ trợ.
+- Chuỗi nhận dạng chỉ nói `"iPhone"`, không nói đời nào.
+
+Còn lại độ phân giải logic — thứ không nói dối được vì nó là kích thước thật của màn hình.
+Bảng `SCREENS` tra ra `390x844@3 → "iPhone 12/13/14"`. Không tách được các máy dùng chung một
+cỡ màn, nên trả về cả nhóm thay vì đoán bừa một cái tên.
+
+### Vài chỗ khuất khác
+
+- **`rtt` của Cloudflare luôn rỗng với HTTP/3**, vì HTTP/3 chạy trên QUIC/UDP nên không có
+  bắt tay TCP để đo. Đúng nhóm khách hiện đại nhất lại rơi vào lỗ hổng này, nên script tự
+  đo lấy qua `PerformanceNavigationTiming` và ghi vào `rtt_client`.
+- **Trình duyệt nhúng trong ứng dụng** (Messenger, Zalo, Instagram) có chuỗi nhận dạng gần
+  y hệt Safari thường, chỉ khác một mẩu ở cuối. Với một trang hay được gửi qua tin nhắn thì
+  đây là nhóm đáng kể, và biết được thì mới hiểu vì sao có lượt "mở rồi thoát ngay".
+- **`asn` không phân biệt được 4G với cáp quang**: VNPT vừa bán cáp quang vừa bán VinaPhone,
+  cả hai đều ra "Vietnam Posts and Telecommunications Group". Loại kết nối phải hỏi trình
+  duyệt (`navigator.connection`), mà Safari lại không hỗ trợ — nên cột này thường trống trên iPhone.
+
+### Máy tính: đọc chip, không đọc màn hình
+
+Một lượt thử trên MacBook M4 lộ ra bốn chỗ sai của vòng trước:
+
+| Chỗ sai | Nguyên nhân | Đã sửa |
+| --- | --- | --- |
+| "Đời máy: —" | Bảng `SCREENS` chỉ có điện thoại | Máy tính suy từ chip: `"Apple M4"` → `"Mac (M4)"` |
+| "Hệ điều hành: 27.0.0" trần | Không ghép tên hệ | Hiện `"macOS 27"` |
+| "4G / Wi-Fi nhanh" trên máy bàn | `effectiveType` **không** nói loại kết nối vật lý | Đổi nhãn thành tốc độ: `"10.0 Mbps · nhanh"` |
+| Gắn cờ `VPN?` nhầm | Chỉ so TÊN múi giờ | So ĐỘ LỆCH GIỜ thật, đổi nhãn thành `"Lệch giờ"` |
+
+Hai bài học chung:
+
+- **Độ phân giải vô dụng trên máy tính.** Máy thật cho `1334x1000@2` — không khớp MacBook nào,
+  vì đó là màn ngoài hoặc màn đã chia tỉ lệ. Ngược lại chip thì chỉ có một nghĩa. Nên
+  `guessModel()` thử chip trước, rồi mới tới bảng độ phân giải (dành cho điện thoại).
+- **Mac và Windows cũng đóng băng phiên bản trong chuỗi nhận dạng**, y như Safari trên iOS:
+  Mac vĩnh viễn khai `"Mac OS X 10_15_7"` (từ 2020), Windows 11 vẫn khai `"Windows NT 10.0"`.
+  Chỉ Client Hints nói thật, nên nó được ưu tiên tuyệt đối.
+
+`effectiveType` đáng nói riêng: tên gọi gợi ý loại mạng nhưng thực chất chỉ xếp hạng tốc độ
+vào bốn bậc mượn tên công nghệ di động. Máy bàn cắm cáp quang vẫn ra `"4g"` — nghĩa là "nhanh
+ngang 4G trở lên", không phải "đang dùng 4G".
+
+### Lọc máy của chính mình
+
+Người mở trang này nhiều nhất là mình — sửa xong một chỗ lại vào xem thử. Bốn máy thử đầu
+tiên đã chiếm gần hết danh sách "người thật", nên có nút **Đây là máy tôi** trong thẻ chi
+tiết: đánh dấu theo `cid` và mọi thống kê sẽ bỏ qua máy đó. Nút **Bỏ qua máy tôi** ở thanh
+lọc bật/tắt được khi cần xem lại đầy đủ.
+
+Đánh dấu theo `cid` chứ không theo IP vì IP nhà lẫn IP 4G đều đổi. Đổi lại, xoá dữ liệu
+duyệt web sẽ mất dấu và phải đánh dấu lại — chấp nhận được cho một tiện ích dọn nhiễu.
+
+### Bảng tra đời máy đã kiểm chứng
+
+Bốn lượt thử trên máy thật, đối chiếu với sự thật do chủ máy xác nhận:
+
+| Máy thật | Độ phân giải | Hệ thống đoán | Đúng? |
+| --- | --- | --- | --- |
+| iPhone 12, Chrome, iOS 27 | `390x844@3` | iPhone 12/13/14 · iOS 27 | ✅ |
+| iPhone 12, Safari, iOS 27 | `390x844@3` | iPhone 12/13/14 · iOS 27 | ✅ |
+| iPhone 11, Safari, iOS 27 | `414x896@2` | iPhone XR/11 · iOS 27 | ✅ |
+| Mac mini M4, Chrome, macOS 27 | `1334x1000@2` (màn ngoài) | Mac (M4) · macOS 27 | ✅ |
+
+Mac mini là ví dụ rõ nhất cho việc **không được suy đời máy tính từ độ phân giải**: máy này
+không có màn hình tích hợp, con số đo được hoàn toàn là của màn ngoài cắm vào.
+
+Về bảo mật: `/api/pulse` không cần đăng nhập (người xem lạ mới là đối tượng ghi), nên nó
+chỉ `UPDATE` đúng hàng có `vid` khớp — không bao giờ `INSERT`, và `vid` phải đúng dạng UUID do
+Worker sinh ra. Mọi trường đều bị chặn độ dài và ép kiểu; `human`/`dwell`/`scroll` chỉ đi lên
+bằng `MAX()` nên báo cáo gửi lúc đóng tab không kéo tụt kết quả đã có.
+
+### Cài đặt lần đầu
+
+```bash
+npx wrangler d1 migrations apply phamkhanhminhman --remote
+npm run deploy
+```
+
+Đăng nhập bằng đúng mật khẩu của `/admin`. Nếu trang báo thiếu bảng `visits` thì chạy lại lệnh
+migration ở trên.
+
 ## Giấy phép
 
 © 2026 phamkhanhminhman.com. All rights reserved.

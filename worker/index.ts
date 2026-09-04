@@ -21,6 +21,8 @@ export type PostMetaMap = Record<string, PostMeta>;
 interface Env {
   ASSETS: Fetcher;
   POST_META: KVNamespace;
+  /** Nhật ký lượt truy cập — xem migrations/0001_visits.sql. */
+  DB: D1Database;
   /** Mật khẩu admin. Đặt bằng `wrangler secret put ADMIN_PASSWORD`. */
   ADMIN_PASSWORD?: string;
   /** Khoá ký cookie phiên. Đặt bằng `wrangler secret put SESSION_SECRET`. */
@@ -30,6 +32,9 @@ interface Env {
 const META_KEY = "post-meta";
 const COOKIE = "pkmm_admin";
 const SESSION_HOURS = 12;
+
+/** Giữ nhật ký bao nhiêu ngày. Quá mốc này thì tự xoá — xem `sweep()`. */
+const VISIT_RETENTION_DAYS = 90;
 
 // ---------------------------------------------------------------- phiên đăng nhập
 
@@ -109,6 +114,201 @@ function slugOf(pathname: string): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+// ---------------------------------------------------------------- nhật ký lượt xem
+
+/**
+ * Nhận diện máy quét. Không nhằm chặn ai — chỉ để trang quản trị mặc định
+ * hiện người thật, vì Googlebot/UptimeRobot quét đều đặn sẽ lấp hết danh sách.
+ * Cờ này ghi kèm mỗi hàng nên vẫn xem lại được bot khi cần.
+ */
+const BOT_UA =
+  /bot|crawl|spider|slurp|facebookexternalhit|embedly|preview|monitor|curl|wget|python-requests|headless|lighthouse|semrush|ahrefs|dataprovider|scrapy/i;
+
+/** Cắt chuỗi trước khi ghi: một User-Agent giả mạo có thể dài vài KB. */
+const cut = (s: string | null | undefined, n: number) => (s ?? "").slice(0, n);
+
+/**
+ * Trình duyệt nhúng trong ứng dụng khác.
+ *
+ * Với một trang cá nhân hay được gửi qua tin nhắn thì đây là nhóm đáng kể, mà
+ * chuỗi nhận dạng của chúng trông gần y hệt Safari/Chrome thường — chỉ khác
+ * một mẩu ở cuối. Biết được thì mới hiểu vì sao có lượt "mở rồi thoát ngay":
+ * người ta bấm link trong Messenger, liếc một cái rồi quay lại chat.
+ */
+function webviewOf(ua: string): string {
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return "Facebook";
+  if (/Instagram/i.test(ua)) return "Instagram";
+  if (/Zalo/i.test(ua)) return "Zalo";
+  if (/Line\//i.test(ua)) return "LINE";
+  if (/MicroMessenger/i.test(ua)) return "WeChat";
+  if (/TikTok|BytedanceWebview/i.test(ua)) return "TikTok";
+  if (/Twitter/i.test(ua)) return "X";
+  if (/Telegram/i.test(ua)) return "Telegram";
+  // Android WebView: có "wv" trong chuỗi. iOS thì không có dấu hiệu nào chắc
+  // chắn nếu ứng dụng không tự thêm, nên chỉ nhận diện được các tên ở trên.
+  if (/; wv\)/i.test(ua)) return "Ứng dụng";
+  return "";
+}
+
+/** Số, đã chặn trên chặn dưới — dữ liệu từ trình duyệt là dữ liệu KHÔNG tin được. */
+function num(v: unknown, max: number): number {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, max) : 0;
+}
+
+/**
+ * Ghi một lượt truy cập.
+ *
+ * Luôn gọi qua `ctx.waitUntil` — người xem không phải chờ D1 ghi xong mới thấy
+ * trang, và nếu D1 lỗi (hết hạn mức, mạng chập) thì trang vẫn hiện bình
+ * thường: nhật ký là thứ phụ, không được phép làm hỏng site.
+ *
+ * `vid` là mã của lượt tải trang này, do chỗ gọi sinh ra và nhúng vào HTML để
+ * lát nữa trình duyệt báo ngược lại (xem `handleBeacon`).
+ */
+async function logVisit(request: Request, env: Env, url: URL, vid: string): Promise<void> {
+  // `cf-connecting-ip` là IP thật của người xem do chính Cloudflare gắn vào ở
+  // biên; không thể bị giả mạo từ phía client như `x-forwarded-for`.
+  const ip = request.headers.get("cf-connecting-ip") ?? "";
+  const ua = request.headers.get("user-agent") ?? "";
+  const cf = (request.cf ?? {}) as IncomingRequestCfProperties;
+
+  // Cloudflare tự xác minh được Googlebot/Bingbot thật (đối chiếu ngược DNS),
+  // khác hẳn với việc tin vào chuỗi User-Agent tự khai.
+  const bv = (cf as { botManagement?: { verifiedBot?: boolean } }).botManagement;
+  const verifiedBot = bv?.verifiedBot ? "cloudflare" : "";
+
+  await env.DB.prepare(
+    `INSERT INTO visits
+       (ts, ip, country, city, region, asn, path, referer, ua, bot,
+        vid, lat, lon, postal, tz, colo, proto, tls, rtt, verified_bot, lang,
+        webview)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      Date.now(),
+      cut(ip, 64),
+      cut(cf.country as string | undefined, 8),
+      cut(cf.city as string | undefined, 64),
+      cut(cf.region as string | undefined, 64),
+      cut(cf.asOrganization as string | undefined, 96),
+      cut(url.pathname, 200),
+      cut(request.headers.get("referer"), 200),
+      cut(ua, 300),
+      BOT_UA.test(ua) || !ua || verifiedBot ? 1 : 0,
+      vid,
+      cut(cf.latitude as string | undefined, 24),
+      cut(cf.longitude as string | undefined, 24),
+      cut(cf.postalCode as string | undefined, 24),
+      cut(cf.timezone as string | undefined, 48),
+      cut(cf.colo as string | undefined, 8),
+      cut(cf.httpProtocol as string | undefined, 16),
+      cut(cf.tlsVersion as string | undefined, 16),
+      num((cf as { clientTcpRtt?: number }).clientTcpRtt, 100000),
+      verifiedBot,
+      cut(request.headers.get("accept-language"), 64),
+      webviewOf(ua),
+    )
+    .run();
+}
+
+/**
+ * Dọn hàng quá hạn. Chạy xác suất ~1/200 lượt xem thay vì đặt Cron Trigger:
+ * một trang cá nhân vài chục lượt/ngày thì vẫn chạm tới đủ thường xuyên, mà
+ * không phải nuôi thêm một handler `scheduled` chỉ để xoá vài hàng.
+ */
+async function sweep(env: Env): Promise<void> {
+  if (Math.random() > 0.005) return;
+  const cutoff = Date.now() - VISIT_RETENTION_DAYS * 86400_000;
+  await env.DB.prepare("DELETE FROM visits WHERE ts < ?").bind(cutoff).run();
+}
+
+/** Gói cả hai việc trên vào một promise nuốt lỗi, để chỗ gọi khỏi lặp try/catch. */
+function recordVisit(request: Request, env: Env, url: URL, vid: string): Promise<void> {
+  return (async () => {
+    try {
+      await logVisit(request, env, url, vid);
+      await sweep(env);
+    } catch {
+      // Nhật ký hỏng thì im lặng bỏ qua — không đáng để làm hỏng một lượt xem.
+    }
+  })();
+}
+
+/**
+ * Trình duyệt báo về sau khi trang đã mở.
+ *
+ * Đây là phần trả lời câu "có phải người thật không" một cách đáng tin. Cờ bot
+ * dựa trên chuỗi User-Agent chỉ bắt được máy quét TỰ KHAI báo mình là máy;
+ * loại chép nguyên chuỗi của Chrome thì lọt hết. Còn ở đây, để một hàng lên
+ * được `human = 2` thì phía kia phải chạy được JavaScript, có màn hình thật,
+ * VÀ có người cuộn hoặc bấm — ba thứ mà máy quét thông thường không làm.
+ *
+ * KHÔNG cần đăng nhập (người xem lạ mới là đối tượng ghi), nên mọi trường đều
+ * bị chặn độ dài và ép kiểu; và chỉ `UPDATE` đúng hàng có `vid` khớp, không bao
+ * giờ `INSERT` — người ngoài không tự tạo được hàng giả.
+ */
+async function handleBeacon(request: Request, env: Env): Promise<Response> {
+  const ok = new Response(null, { status: 204 });
+  try {
+    const b = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+    const vid = typeof b?.vid === "string" ? b.vid.slice(0, 36) : "";
+    // `vid` do Worker sinh ra bằng crypto.randomUUID rồi nhúng vào HTML; không
+    // đúng dạng thì không phải báo cáo thật. UUID v4 dài đúng 36 ký tự — chặn
+    // ở 32 như trước là loại sạch mọi báo cáo hợp lệ mà không báo lỗi gì.
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(vid)) return ok;
+
+    const stage = num(b?.human, 2);
+    await env.DB.prepare(
+      `UPDATE visits SET
+           cid = CASE WHEN ? != '' THEN ? ELSE cid END,
+           -- Chỉ đi LÊN: một lượt đã chứng minh có tương tác thì báo cáo sau
+           -- đó (gửi lúc đóng tab) không được kéo nó tụt về "chỉ mới tải".
+           human = MAX(human, ?),
+           dwell = MAX(dwell, ?),
+           scroll = MAX(scroll, ?),
+           screen = CASE WHEN ? != '' THEN ? ELSE screen END,
+           tz_client = CASE WHEN ? != '' THEN ? ELSE tz_client END,
+           gpu = CASE WHEN ? != '' THEN ? ELSE gpu END,
+           cpu = MAX(cpu, ?),
+           ram = MAX(ram, ?),
+           touch = MAX(touch, ?),
+           model = CASE WHEN ? != '' THEN ? ELSE model END,
+           os_version = CASE WHEN ? != '' THEN ? ELSE os_version END,
+           net = CASE WHEN ? != '' THEN ? ELSE net END,
+           downlink = MAX(downlink, ?),
+           rtt_client = MAX(rtt_client, ?),
+           -- Script chạy được thì gần như chắc chắn không phải máy quét, kể
+           -- cả khi chuỗi User-Agent trông giống bot.
+           bot = CASE WHEN ? >= 2 THEN 0 ELSE bot END
+         WHERE vid = ?`,
+    )
+      .bind(
+        cut(b?.cid as string, 32), cut(b?.cid as string, 32),
+        stage,
+        num(b?.dwell, 86400),
+        num(b?.scroll, 100),
+        cut(b?.screen as string, 32), cut(b?.screen as string, 32),
+        cut(b?.tz as string, 48), cut(b?.tz as string, 48),
+        cut(b?.gpu as string, 96), cut(b?.gpu as string, 96),
+        num(b?.cpu, 256),
+        num(b?.ram, 1024),
+        b?.touch ? 1 : 0,
+        cut(b?.model as string, 48), cut(b?.model as string, 48),
+        cut(b?.osv as string, 24), cut(b?.osv as string, 24),
+        cut(b?.net as string, 12), cut(b?.net as string, 12),
+        num(b?.downlink, 100000),
+        num(b?.rttc, 100000),
+        stage,
+        vid,
+      )
+      .run();
+  } catch {
+    // Báo cáo hỏng thì thôi — không bao giờ để nó ảnh hưởng tới người đang xem.
+  }
+  return ok;
+}
+
 // ---------------------------------------------------------------- API admin
 
 async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {
@@ -174,10 +374,199 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
     return json({ ok: true, meta: clean });
   }
 
+  if (url.pathname === "/api/admin/visits" && request.method === "GET") {
+    return handleVisits(env, url);
+  }
+
+  // Đánh dấu / bỏ đánh dấu máy của mình.
+  if (url.pathname === "/api/admin/own" && request.method === "POST") {
+    const b = (await request.json().catch(() => null)) as {
+      cid?: string;
+      label?: string;
+      remove?: boolean;
+    } | null;
+    const cid = cut(b?.cid, 32);
+    if (!cid) return json({ error: "Thiếu mã máy." }, 400);
+    if (b?.remove) {
+      await env.DB.prepare("DELETE FROM own_devices WHERE cid = ?").bind(cid).run();
+    } else {
+      await env.DB.prepare(
+        `INSERT INTO own_devices (cid, label, added_at) VALUES (?, ?, ?)
+         ON CONFLICT(cid) DO UPDATE SET label = excluded.label`,
+      )
+        .bind(cid, cut(b?.label, 48), Date.now())
+        .run();
+    }
+    return json({ ok: true });
+  }
+
   return json({ error: "Không có route này." }, 404);
 }
 
+// ---------------------------------------------------------------- API nhật ký
+
+async function handleVisits(env: Env, url: URL): Promise<Response> {
+  const daysRaw = Number(url.searchParams.get("days") ?? 7);
+  const days = Number.isFinite(daysRaw) ? Math.min(Math.max(daysRaw, 1), 90) : 7;
+  const since = Date.now() - days * 86400_000;
+  // Mặc định giấu bot: Googlebot và các máy quét uptime ghé đều đặn, để lẫn
+  // vào thì danh sách "ai đã xem" gần như chỉ toàn máy.
+  const bots = url.searchParams.get("bots") === "1";
+  const botFilter = bots ? "" : " AND bot = 0";
+  // Lọc "chỉ người thật": đã chứng minh bằng tương tác, không phải bằng
+  // chuỗi User-Agent tự khai.
+  const humanOnly = url.searchParams.get("human") === "1" ? " AND human >= 2" : "";
+  // Ẩn máy của chính mình, trừ khi hỏi ngược lại. Dùng NOT EXISTS thay vì JOIN
+  // để câu truy vấn không đổi hình dạng khi bảng own_devices còn rỗng.
+  const mine = url.searchParams.get("mine") === "1";
+  const ownFilter = mine
+    ? ""
+    : " AND (cid = '' OR NOT EXISTS (SELECT 1 FROM own_devices o WHERE o.cid = visits.cid))";
+  const where = botFilter + humanOnly + ownFilter;
+
+  try {
+    // Ba câu truy vấn cho ba khối trên màn hình. Chạy song song vì chúng độc
+    // lập nhau — D1 tính theo số hàng đọc chứ không theo số câu lệnh, nên
+    // tách ra không đắt hơn gộp.
+    const [people, recent, totals, own] = await Promise.all([
+      // Gộp theo MÁY (`cid` trong localStorage) nếu có, không thì theo IP. Vì
+      // sao: IP di động đổi liên tục nên gộp theo IP sẽ xé một người thành
+      // nhiều dòng. `cid` chỉ có khi script chạy được, nên hai cách vẫn phải
+      // dùng song song.
+      env.DB.prepare(
+        `SELECT CASE WHEN cid != '' THEN cid ELSE ip END AS who,
+                MAX(cid)         AS cid,
+                MAX(ip)          AS ip,
+                COUNT(DISTINCT ip) AS ips,
+                COUNT(*)         AS hits,
+                MAX(ts)          AS last_ts,
+                MIN(ts)          AS first_ts,
+                MAX(country)     AS country,
+                MAX(city)        AS city,
+                MAX(region)      AS region,
+                MAX(asn)         AS asn,
+                MAX(ua)          AS ua,
+                MAX(human)       AS human,
+                MAX(dwell)       AS dwell,
+                MAX(scroll)      AS scroll,
+                SUM(dwell)       AS total_dwell,
+                MAX(screen)      AS screen,
+                MAX(gpu)         AS gpu,
+                MAX(model)       AS model,
+                MAX(os_version)  AS os_version,
+                MAX(cpu)         AS cpu,
+                MAX(ram)         AS ram,
+                MAX(touch)       AS touch,
+                MAX(lat)         AS lat,
+                MAX(lon)         AS lon,
+                MAX(postal)      AS postal,
+                MAX(tz)          AS tz,
+                MAX(tz_client)   AS tz_client,
+                MAX(colo)        AS colo,
+                MAX(proto)       AS proto,
+                MAX(tls)         AS tls,
+                MAX(rtt)         AS rtt,
+                MAX(lang)        AS lang,
+                MAX(net)         AS net,
+                MAX(downlink)    AS downlink,
+                MAX(rtt_client)  AS rtt_client,
+                MAX(webview)     AS webview,
+                MAX(verified_bot) AS verified_bot,
+                MAX(referer)     AS referer,
+                COUNT(DISTINCT path) AS pages
+           FROM visits
+          WHERE ts >= ?${where}
+       GROUP BY who
+       ORDER BY last_ts DESC
+          LIMIT 300`,
+      )
+        .bind(since)
+        .all(),
+      // Dòng thời gian thô, để soi đúng một phiên xem cụ thể.
+      env.DB.prepare(
+        `SELECT ts, ip, cid, country, city, region, asn, path, referer, ua, bot,
+                human, dwell, scroll, screen, gpu, model, os_version, cpu, ram,
+                touch, lat, lon, tz, tz_client, colo, proto, tls, rtt, lang,
+                net, downlink, rtt_client, webview, verified_bot
+            FROM visits
+          WHERE ts >= ?${where}
+       ORDER BY ts DESC
+          LIMIT 500`,
+      )
+        .bind(since)
+        .all(),
+      env.DB.prepare(
+        `SELECT COUNT(*) AS hits,
+                COUNT(DISTINCT ip) AS visitors,
+                SUM(bot) AS bot_hits,
+                SUM(CASE WHEN human >= 2 THEN 1 ELSE 0 END) AS human_hits,
+                COUNT(DISTINCT CASE WHEN human >= 2 THEN COALESCE(NULLIF(cid,''), ip) END) AS humans
+           FROM visits
+          WHERE ts >= ?${ownFilter}`,
+      )
+        .bind(since)
+        .first(),
+      env.DB.prepare("SELECT cid, label FROM own_devices").all(),
+    ]);
+
+    return json({
+      days,
+      people: people.results ?? [],
+      recent: recent.results ?? [],
+      totals: totals ?? { hits: 0, visitors: 0, bot_hits: 0, human_hits: 0, humans: 0 },
+      own: (own.results ?? []) as { cid: string; label: string }[],
+    });
+  } catch (err) {
+    // Trường hợp thật hay gặp: đã deploy Worker nhưng quên chạy migration, nên
+    // bảng `visits` chưa tồn tại. Nói thẳng ra thay vì trả 500 trống trơn.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/no such table/i.test(msg)) {
+      return json(
+        { error: "Chưa có bảng `visits`. Chạy: npx wrangler d1 migrations apply phamkhanhminhman --remote" },
+        503,
+      );
+    }
+    return json({ error: `Lỗi đọc nhật ký: ${msg}` }, 500);
+  }
+}
+
 // ---------------------------------------------------------------- áp lên HTML
+
+/**
+ * Đoạn script nhúng vào mỗi trang để trình duyệt tự khai thông tin máy và báo
+ * lại có người thật hay không.
+ *
+ * Viết tay, nén sẵn, chưa tới 1KB và chạy sau khi trang đã hiện — cố ý không
+ * kéo thêm thư viện phân tích nào: một trang tĩnh nhẹ mà nhét vào 40KB script
+ * đo đạc thì hỏng mất cái nhanh vốn có.
+ *
+ * Ba mốc gửi báo cáo:
+ *   1 — ngay khi tải xong: chứng minh JavaScript chạy được, kèm thông tin máy.
+ *   2 — khi có cuộn/bấm/ở lại quá 15 giây: chứng minh có người thật.
+ *   cuối — lúc rời trang: chốt lại ở lại bao lâu, đọc tới đâu.
+ */
+function beaconScript(vid: string): string {
+  return `(function(){try{
+var V=${JSON.stringify(vid)},S=0,T=Date.now(),H=1,sent=0;
+var C=localStorage.getItem('_pk');if(!C){C=Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('_pk',C)}catch(e){}}
+function gpu(){try{var c=document.createElement('canvas'),g=c.getContext('webgl')||c.getContext('experimental-webgl');if(!g)return'';var d=g.getExtension('WEBGL_debug_renderer_info');return d?String(g.getParameter(d.UNMASKED_RENDERER_WEBGL)).slice(0,96):''}catch(e){return''}}
+function send(h,extra){if(sent>2&&h<2)return;sent++;var n=navigator.connection||{};
+var b={vid:V,cid:C,human:h,dwell:Math.round((Date.now()-T)/1000),scroll:S,screen:screen.width+'x'+screen.height+'@'+(devicePixelRatio||1),tz:(Intl.DateTimeFormat().resolvedOptions().timeZone||''),gpu:gpu(),cpu:navigator.hardwareConcurrency||0,ram:navigator.deviceMemory||0,touch:(navigator.maxTouchPoints||0)>0?1:0,model:(extra&&extra.model)||'',osv:(extra&&extra.osv)||'',net:n.effectiveType||'',downlink:Math.round((n.downlink||0)*10),rttc:n.rtt||0};
+// Đo độ trễ thật từ chính lượt tải trang này, không phụ thuộc navigator.connection
+// (Safari không có API đó). PerformanceNavigationTiming có sẵn ở mọi trình duyệt.
+try{var p=performance.getEntriesByType('navigation')[0];if(p&&p.responseStart&&p.requestStart){var m=Math.round(p.responseStart-p.requestStart);if(m>0&&(!b.rttc||m<b.rttc))b.rttc=m}}catch(e){}
+var s=JSON.stringify(b);if(navigator.sendBeacon){navigator.sendBeacon('/api/pulse',new Blob([s],{type:'application/json'}))}else{fetch('/api/pulse',{method:'POST',body:s,keepalive:true})}}
+function first(){var u=navigator.userAgentData;if(u&&u.getHighEntropyValues){u.getHighEntropyValues(['model','platformVersion']).then(function(v){send(1,{model:v.model||'',osv:v.platformVersion||''})}).catch(function(){send(1)})}else{send(1)}}
+addEventListener('scroll',function(){var d=document.documentElement,m=d.scrollHeight-innerHeight;if(m>0){var p=Math.round(scrollY/m*100);if(p>S)S=p}H=2},{passive:true});
+addEventListener('click',function(){H=2},{passive:true});
+addEventListener('keydown',function(){H=2});
+addEventListener('pointermove',function(){H=2},{passive:true,once:true});
+setTimeout(function(){if(H<2&&Date.now()-T>=15000)H=2;if(H>1)send(2)},15000);
+addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')send(H)});
+addEventListener('pagehide',function(){send(H)});
+if(document.readyState==='complete')first();else addEventListener('load',first);
+}catch(e){}})();`;
+}
 
 /** Bỏ thẻ bài bị ẩn và phát CSS `order` cho phần ghim / đổi thứ tự. */
 class BlogListRewriter {
@@ -236,36 +625,66 @@ function computeOrder(slugs: string[], meta: PostMetaMap): string[] {
   });
 }
 
-async function transformHtml(res: Response, env: Env): Promise<Response> {
+/**
+ * Chèn script đo lượt xem, và áp metadata bài viết nếu có.
+ *
+ * Trước đây hàm này trả nguyên bản ngay khi chưa có metadata nào. Giờ script
+ * đo phải được nhúng vào MỌI trang HTML, nên lối thoát sớm đó chuyển thành
+ * "bỏ qua phần metadata", chứ không bỏ qua cả lượt biến đổi.
+ */
+async function transformHtml(
+  res: Response,
+  env: Env,
+  vid: string,
+  track: boolean,
+): Promise<Response> {
   const meta = await readMeta(env);
-  if (Object.keys(meta).length === 0) return res; // không cấu hình gì -> trả nguyên bản
 
-  // Cần biết thứ tự gốc của các thẻ: đọc trước bằng một bản sao.
-  const html = await res.clone().text();
-  const slugs = [...html.matchAll(/data-post-slug="([^"]+)"/g)].map((m) => m[1]);
-  if (slugs.length === 0) return res;
+  let rewriter: BlogListRewriter | null = null;
+  let css = "";
+  let hiddenList: string[] = [];
 
-  const rewriter = new BlogListRewriter(meta, computeOrder(slugs, meta));
-  const css = rewriter.css();
-  const hiddenList = [...new Set(slugs.filter((s) => isHidden(meta, s)))];
+  if (Object.keys(meta).length > 0) {
+    // Cần biết thứ tự gốc của các thẻ: đọc trước bằng một bản sao.
+    const html = await res.clone().text();
+    const slugs = [...html.matchAll(/data-post-slug="([^"]+)"/g)].map((m) => m[1]);
+    if (slugs.length > 0) {
+      rewriter = new BlogListRewriter(meta, computeOrder(slugs, meta));
+      css = rewriter.css();
+      hiddenList = [...new Set(slugs.filter((s) => isHidden(meta, s)))];
+    }
+  }
 
-  return new HTMLRewriter()
-    .on("[data-post-slug]", rewriter)
-    .on("head", {
+  if (!rewriter && !track) return res;
+
+  let out = new HTMLRewriter().on("head", {
+    element(el: Element) {
+      if (css) el.append(`<style>${css}</style>`, { html: true });
+      // React hydrate lại danh sách bài từ bundle JS và sẽ CHÈN LẠI thẻ vừa gỡ
+      // nếu client không biết bài nào đang ẩn. Danh sách phải nằm trong <head>
+      // để chắc chắn chạy trước script của Next.
+      if (hiddenList.length > 0) {
+        el.append(
+          `<script>window.__PKMM_HIDDEN__=${JSON.stringify(hiddenList)}</script>`,
+          { html: true },
+        );
+      }
+    },
+  });
+
+  if (rewriter) out = out.on("[data-post-slug]", rewriter);
+
+  if (track) {
+    // Đặt cuối <body>, không phải <head>: script chỉ đo đạc, không được phép
+    // chen vào đường tải của nội dung.
+    out = out.on("body", {
       element(el: Element) {
-        if (css) el.append(`<style>${css}</style>`, { html: true });
-        // React hydrate lại danh sách bài từ bundle JS và sẽ CHÈN LẠI thẻ vừa gỡ
-        // nếu client không biết bài nào đang ẩn. Danh sách phải nằm trong <head>
-        // để chắc chắn chạy trước script của Next.
-        if (hiddenList.length > 0) {
-          el.append(
-            `<script>window.__PKMM_HIDDEN__=${JSON.stringify(hiddenList)}</script>`,
-            { html: true },
-          );
-        }
+        el.append(`<script>${beaconScript(vid)}</script>`, { html: true });
       },
-    })
-    .transform(res);
+    });
+  }
+
+  return out.transform(res);
 }
 
 /** Bỏ <item>/<url> của bài bị ẩn khỏi RSS và sitemap. */
@@ -287,7 +706,7 @@ async function filterFeed(res: Response, env: Env, tag: "item" | "url"): Promise
 // ---------------------------------------------------------------- entry
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     // Domain chính đã chuyển sang phamkhanhminhman.com. pkmm.online và
@@ -314,6 +733,24 @@ export default {
       return handleApi(request, env, url);
     }
 
+    // Trình duyệt báo về sau khi trang đã mở. Đặt trước phần ghi nhật ký để
+    // chính lượt gọi này không bị đếm thành một lượt xem.
+    if (url.pathname === "/api/pulse" && request.method === "POST") {
+      return handleBeacon(request, env);
+    }
+
+    // Ghi nhật ký SAU khối chuyển hướng và khối /api/admin ở trên: lượt bị
+    // 301 sang domain chính sẽ được ghi lại ở request kế tiếp (trên đúng
+    // domain), nên ghi cả hai chỉ tạo ra hàng đôi. Còn các lượt gọi API của
+    // chính trang quản trị thì không phải là người xem site.
+    //
+    // `waitUntil` giữ Worker sống để hoàn tất việc ghi SAU KHI response đã
+    // gửi đi — người xem không chờ thêm mili-giây nào.
+    //
+    // `vid` nối hàng vừa ghi với báo cáo mà trình duyệt gửi về lát nữa.
+    const vid = crypto.randomUUID();
+    ctx.waitUntil(recordVisit(request, env, url, vid));
+
     // Site từng song ngữ; bản tiếng Việt đã gỡ. Những URL /vi/* đã được index
     // nên chuyển vĩnh viễn về bản tiếng Anh tương ứng thay vì trả 404 hàng loạt.
     if (url.pathname === "/vi" || url.pathname.startsWith("/vi/")) {
@@ -334,7 +771,11 @@ export default {
     if (url.pathname === "/sitemap.xml") return filterFeed(res, env, "url");
 
     const type = res.headers.get("content-type") ?? "";
-    if (type.includes("text/html")) return transformHtml(res, env);
+    if (type.includes("text/html")) {
+      // Không đo trang quản trị: đó là mình tự xem, đếm vào chỉ làm nhiễu.
+      const track = !url.pathname.startsWith("/admin");
+      return transformHtml(res, env, vid, track);
+    }
 
     return res;
   },
