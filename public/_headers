@@ -36,3 +36,10 @@
 # bớt request, đủ ngắn để một lần sửa ảnh lan ra trong vòng 24 giờ.
 /assets/*
   Cache-Control: public, max-age=86400
+
+# Hai tấm sheet của linh vật. Cùng lý do với /assets/*: tên file không có hash
+# nên không để `immutable` được. Chúng nặng ~335KB cho cả hai và tải trên mọi
+# lần mở trang chủ, nên để chúng rơi vào mặc định `max-age=0` thì mỗi lượt
+# quay lại là một vòng revalidate cho thứ gần như không bao giờ đổi.
+/mascots/*
+  Cache-Control: public, max-age=86400

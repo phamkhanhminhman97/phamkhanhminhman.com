@@ -9,6 +9,7 @@ import { formatDayMonth } from "@/lib/date";
 import { hiddenSlugs } from "@/lib/post-visibility";
 import { copy } from "@/content/copy";
 import { SITE_DOMAIN } from "@/lib/site";
+import { Mascot } from "page-mascot";
 import {
   fetchNpmStats,
   totalDownloads,
@@ -236,6 +237,25 @@ export default function HomePage() {
             {SITE_DOMAIN}
           </span>
         </div>
+
+        {/* LINH VẬT
+
+            Đặt giữa logo và đồng hồ: nó nhìn theo con trỏ, nên chỗ nào cũng
+            "hoạt động", nhưng ở đầu trang thì người đọc gặp nó ngay — đó là
+            toàn bộ mục đích. `page-mascot` không có chỉ thị "use client" của
+            riêng nó, mà file này đã là client component nên dùng được thẳng;
+            nếu có ngày chuyển phần header sang server component thì phải tách
+            mascot ra một client component riêng, không thì build sẽ gãy.
+
+            Hai tấm sheet nằm ở `public/mascots`: mỗi tấm là lưới 3×3 —
+            chín hướng đầu và chín biểu cảm. Component chỉ đổi
+            `background-position`, không kéo theo thư viện animation nào. */}
+        <Mascot
+          directions="/mascots/redpanda-directions.webp"
+          reactions="/mascots/redpanda-reactions.webp"
+          size={120}
+          label="red panda"
+        />
 
         {/* TIME & WEATHER WIDGET */}
         <div className="flex flex-col items-center md:items-end text-center md:text-right font-mono text-xs text-zinc-600">
