@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Thư mục tạm của `wrangler dev`: chứa bundle sinh tự động (facade chèn
+    // middleware) mà eslint chấm là "biến không dùng". Không phải mã của mình,
+    // và .gitignore đã bỏ qua — nhưng eslint thì không đọc .gitignore, nên
+    // chạy `wrangler dev` một lần là lint tự mọc thêm cảnh báo.
+    ".wrangler/**",
   ]),
 ]);
 

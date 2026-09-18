@@ -53,6 +53,21 @@
       "database_id": "2e8ea837-b1df-40b3-8e07-caa5cb511806"
     }
   ],
+  // Chặn dò mật khẩu trang quản trị: 5 lần thử mỗi phút cho mỗi IP.
+  //
+  // Rate limiting binding chạy ngay trong runtime của Worker, không tính vào
+  // hạn mức D1/KV và không cần gói trả phí. `namespace_id` là số do mình tự
+  // đặt, chỉ cần duy nhất trong phạm vi Worker này.
+  //
+  // Ngưỡng 5/phút: đủ rộng cho người gõ nhầm vài lần, nhưng biến việc thử một
+  // mật khẩu 8 ký tự từ chuyện vài giờ thành chuyện nhiều năm.
+  "ratelimits": [
+    {
+      "name": "LOGIN_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ],
   // Domain chinh chuyen sang phamkhanhminhman.com - pkmm.online van tro vao
   // cung Worker nay qua route cu (pkmm.online/*, www.pkmm.online/*) nen
   // link cu khong chet, chi doi SITE_URL de canonical/OG tro ve ten mien moi.

@@ -6,6 +6,14 @@ export interface NpmPackageInfo {
   id: string;
   name: string;
   npmName: string;
+  /**
+   * Nhãn loại gói — KHÔNG chứa số phiên bản.
+   *
+   * Trước đây trường này là "API Client • v1.0.8": số version gõ tay, nằm
+   * trong mã nguồn, và mỗi lần publish lên npm là nó sai thêm một bậc mà
+   * không có gì nhắc. Đã đo: site hiện v1.0.8 trong khi npm ở 2.3.0.
+   * Phiên bản giờ lấy từ registry lúc chạy (xem `lib/npm-stats.ts`).
+   */
   tag: string;
   description: string;
   longDescription: string;
@@ -13,7 +21,6 @@ export interface NpmPackageInfo {
   githubUrl: string;
   npmUrl: string;
   docsUrl: string;
-  defaultDownloads: number;
   icon: React.ReactNode;
   /** Code examples to display on the detail page */
   codeExamples: CodeExample[];
@@ -34,7 +41,7 @@ export const npmPackages: NpmPackageInfo[] = [
     id: "shopee",
     name: "Shopee API Client",
     npmName: "shopee-api-client",
-    tag: "API Client • v1.0.8",
+    tag: "API Client",
     description:
       "TypeScript client for Shopee Open API v2. Covers seller authorization, token management, orders, products, logistics, and payment escrow.",
     longDescription:
@@ -53,12 +60,11 @@ export const npmPackages: NpmPackageInfo[] = [
     npmUrl: "https://www.npmjs.com/package/shopee-api-client",
     docsUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/shopee-api-client#readme",
-    defaultDownloads: 1240,
     icon: (
       <picture>
         <source srcSet="/assets/shopee-logo.webp" type="image/webp" />
         <img
-          src="/assets/shopee-logo.png"
+          src="/assets/shopee-logo.jpg"
           alt="Shopee"
           width={96}
           height={96}
@@ -123,7 +129,7 @@ if (isValid) {
     id: "tiktok",
     name: "TikTok Shop API Client",
     npmName: "tiktokshops-api-client",
-    tag: "API Client • v1.0.6",
+    tag: "API Client",
     description:
       "TypeScript API client for TikTok Shop Open API. Covers seller authorization, order APIs, product APIs, and fulfillment APIs.",
     longDescription:
@@ -142,7 +148,6 @@ if (isValid) {
     npmUrl: "https://www.npmjs.com/package/tiktokshops-api-client",
     docsUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/tiktokshops-api-client#readme",
-    defaultDownloads: 890,
     icon: (
       <picture>
         <source srcSet="/assets/tiktokshops-logo.webp" type="image/webp" />
@@ -215,7 +220,7 @@ const newProduct = await tiktok.createProduct({
     id: "lazada",
     name: "Lazada API Client",
     npmName: "lazada-api-client",
-    tag: "API Client • v1.0.6",
+    tag: "API Client",
     description:
       "TypeScript API client for Lazada Open API. Covers seller authorization, order APIs, and product APIs.",
     longDescription:
@@ -233,7 +238,6 @@ const newProduct = await tiktok.createProduct({
     npmUrl: "https://www.npmjs.com/package/lazada-api-client",
     docsUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/lazada-api-client#readme",
-    defaultDownloads: 620,
     icon: (
       <picture>
         <source srcSet="/assets/lazada-logo.webp" type="image/webp" />
@@ -287,7 +291,7 @@ await lazada.updateStatusProduct(123456, {
     id: "all-in-one",
     name: "All-in-One Package",
     npmName: "shopee-tiktokshops-lazada-api",
-    tag: "Monorepo • v4.3.16",
+    tag: "Monorepo",
     description:
       "Bundles the Shopee, TikTok Shop and Lazada SDKs into a single dependency, with versions kept in sync automatically.",
     longDescription:
@@ -305,7 +309,6 @@ await lazada.updateStatusProduct(123456, {
     npmUrl: "https://www.npmjs.com/package/shopee-tiktokshops-lazada-api",
     docsUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/shopee-tiktok-lazada-api#readme",
-    defaultDownloads: 340,
     icon: (
       <svg
         viewBox="0 0 24 24"

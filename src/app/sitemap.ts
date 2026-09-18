@@ -5,17 +5,28 @@ import { SITE_URL as BASE_URL } from "@/lib/site";
 
 export const dynamic = "force-static";
 
+/**
+ * Lần sửa nội dung thật gần nhất của các trang không phải blog (trang chủ,
+ * /about, /projects/*).
+ *
+ * Sửa tay khi thật sự viết lại nội dung các trang đó. Cố ý KHÔNG dùng
+ * `new Date()`: xem ghi chú ở phần blog bên dưới.
+ */
+const CONTENT_UPDATED = "2026-09-18";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: `${BASE_URL}/`,
-      lastModified: new Date(),
+      // Trang chủ đổi khi nội dung giới thiệu / danh sách mục đổi, không phải
+      // mỗi lần build. Cùng lý do với /projects/* ở dưới.
+      lastModified: new Date(CONTENT_UPDATED),
       changeFrequency: "weekly" as const,
       priority: 1,
     },
     {
       url: `${BASE_URL}/about`,
-      lastModified: new Date(),
+      lastModified: new Date(CONTENT_UPDATED),
       changeFrequency: "monthly" as const,
       priority: 0.8,
     },
@@ -33,7 +44,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     ...npmPackages.map((pkg) => ({
       url: `${BASE_URL}/projects/${pkg.id}`,
-      lastModified: new Date(),
+      // Cùng lý do với blog ở trên: `new Date()` khiến mỗi lần deploy là cả
+      // nhóm URL này tự nhận vừa đổi, trong khi nội dung không đổi. Nội dung
+      // trang dự án nằm trong `data/projects.tsx`, nên mốc đúng là lần sửa
+      // file đó — chốt lại thành hằng số, cập nhật khi thật sự viết lại.
+      lastModified: new Date(CONTENT_UPDATED),
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),

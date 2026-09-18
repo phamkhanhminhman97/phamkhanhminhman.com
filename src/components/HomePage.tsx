@@ -9,6 +9,13 @@ import { formatDayMonth } from "@/lib/date";
 import { hiddenSlugs } from "@/lib/post-visibility";
 import { copy } from "@/content/copy";
 import { SITE_DOMAIN } from "@/lib/site";
+import {
+  fetchNpmStats,
+  totalDownloads,
+  releaseMonth,
+  EMPTY_STATS,
+  type NpmLiveStats,
+} from "@/lib/npm-stats";
 
 /** Khoá Web3Forms nạp lúc build. Không có -> phần liên hệ rơi về mailto. */
 const WEB3FORMS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_KEY ?? "";
@@ -25,8 +32,6 @@ function weatherFor(code: number): { key: "clear" | "cloudy" | "fog" | "drizzle"
   return { key: "fair", icon: "☀️" };
 }
 
-/** Ngày của mục "cập nhật gần đây" — chung cho mọi ngôn ngữ. */
-const UPDATE_DATES = ["05/2026", "04/2026", "03/2026"];
 import {
   Mail,
   MapPin,
@@ -98,8 +103,19 @@ export default function HomePage() {
   // Weather state
   const [weather, setWeather] = useState<{ tempC: number; code: number } | null>(null);
 
-  // Npm download counts state
-  const [downloads, setDownloads] = useState<Record<string, number>>({});
+  /**
+   * Số liệu npm thật. Một nguồn duy nhất cho CẢ thẻ từng gói lẫn ô tổng ở cột
+   * phải — trước đây thẻ đọc số live còn ô tổng cộng hằng số, nên hai chỗ trên
+   * cùng màn hình lệch nhau 8,5 lần.
+   */
+  const [npmStats, setNpmStats] = useState<NpmLiveStats>(EMPTY_STATS);
+
+  /**
+   * Số repo công khai trên GitHub. Trước đây là chuỗi "6 repos" gõ thẳng vào
+   * JSX — đã đo được tài khoản có 8. Không có API key nên chỉ đọc endpoint
+   * công khai (60 lượt/giờ mỗi IP, thừa cho một trang cá nhân).
+   */
+  const [repoCount, setRepoCount] = useState<number | null>(null);
 
   // Clock updating effect
   useEffect(() => {
@@ -156,29 +172,31 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const fetchAllDownloads = async () => {
-      const counts: Record<string, number> = {};
-      for (const pkg of npmPackages) {
-        try {
-          const res = await fetch(`https://api.npmjs.org/downloads/point/last-week/${pkg.npmName}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.downloads) {
-              counts[pkg.id] = data.downloads;
-            } else {
-              counts[pkg.id] = pkg.defaultDownloads;
-            }
-          } else {
-            counts[pkg.id] = pkg.defaultDownloads;
-          }
-        } catch {
-          counts[pkg.id] = pkg.defaultDownloads;
-        }
-      }
-      setDownloads(counts);
+    // Vòng lặp cũ gọi tuần tự từng gói và `await` bốn lần liên tiếp. Endpoint
+    // bulk lấy cả bốn trong một request, nên phần số tải giờ chỉ tốn một lượt.
+    let cancelled = false;
+    fetchNpmStats(npmPackages.map((p) => p.npmName)).then((stats) => {
+      if (!cancelled) setNpmStats(stats);
+    });
+    return () => {
+      cancelled = true;
     };
+  }, []);
 
-    fetchAllDownloads();
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://api.github.com/users/phamkhanhminhman97")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const n = data?.public_repos;
+        if (!cancelled && typeof n === "number") setRepoCount(n);
+      })
+      .catch(() => {
+        // Hết hạn mức hoặc mất mạng: giữ null, ô đó hiện "—".
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Smooth scroll helper
@@ -207,8 +225,16 @@ export default function HomePage() {
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="cursor-pointer border-2 border-black p-4 inline-flex flex-col items-center justify-center font-mono font-black tracking-widest text-xl leading-none bg-white hover:bg-black hover:text-white transition-colors duration-300"
         >
+          {/* Dòng dưới là tên miền THẬT, đọc từ `SITE_DOMAIN`.
+
+              Trước đây ghi cứng "ONLINE" — vế sau của pkmm.online, tên miền đã
+              nghỉ từ lần chuyển sang phamkhanhminhman.com. Logo là thứ đập vào
+              mắt đầu tiên, mà nó lại quảng cáo một địa chỉ khác với địa chỉ
+              trên thanh URL. */}
           <span>PKMM</span>
-          <span className="mt-1.5 text-xs border-t border-black pt-1.5 w-full text-center hover:border-white">ONLINE</span>
+          <span className="mt-1.5 text-[10px] border-t border-black pt-1.5 w-full text-center hover:border-white tracking-normal">
+            {SITE_DOMAIN}
+          </span>
         </div>
 
         {/* TIME & WEATHER WIDGET */}
@@ -295,7 +321,7 @@ export default function HomePage() {
               <picture>
                 <source srcSet="/assets/hero.webp" type="image/webp" />
                 <img
-                  src="/assets/hero.png"
+                  src="/assets/hero.jpg"
                   alt={t.heroAlt}
                   width={1024}
                   height={1024}
@@ -319,7 +345,7 @@ export default function HomePage() {
                   <picture>
                     <source srcSet="/assets/avatar.webp" type="image/webp" />
                     <img
-                      src="/assets/avatar.png"
+                      src="/assets/avatar.jpg"
                       alt={d.home.avatarAlt}
                       width={384}
                       height={384}
@@ -388,11 +414,19 @@ export default function HomePage() {
                       </h3>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="font-mono text-[10px] text-zinc-500 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
+                          {/* Phiên bản lấy từ registry; chưa có thì chỉ hiện nhãn loại gói. */}
                           {pkg.tag}
+                          {npmStats.versions[pkg.npmName]
+                            ? ` • v${npmStats.versions[pkg.npmName]}`
+                            : ""}
                         </span>
                         <span className="font-mono text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5">
                           <Download className="w-2.5 h-2.5" />
-                          {downloads[pkg.id] ? downloads[pkg.id].toLocaleString() : pkg.defaultDownloads.toLocaleString()}{t.perWeek}
+                          {/* Chưa lấy được thì hiện "—", KHÔNG hiện số dự phòng:
+                              một con số sai trông y hệt một con số đúng. */}
+                          {npmStats.downloads[pkg.npmName] !== undefined
+                            ? `${npmStats.downloads[pkg.npmName].toLocaleString()}${t.perWeek}`
+                            : "—"}
                         </span>
                       </div>
                     </div>
@@ -623,7 +657,7 @@ export default function HomePage() {
                   rel="noopener noreferrer"
                   className="font-mono text-[10px] font-bold text-red-700 hover:underline"
                 >
-                  6 repos
+                  {repoCount !== null ? `${repoCount} ${t.repos}` : "—"}
                 </a>
               </div>
               <div className="flex items-center justify-between border border-zinc-200 rounded-md px-3 py-2 bg-white shadow-2xs">
@@ -641,7 +675,11 @@ export default function HomePage() {
                   <span className="font-mono text-[11px] text-zinc-700">{t.weeklyDownloads}</span>
                 </div>
                 <span className="font-mono text-[10px] font-bold text-zinc-800">
-                  ~{npmPackages.reduce((sum, p) => sum + p.defaultDownloads, 0).toLocaleString()}
+                  {/* Cộng từ CHÍNH số đã fetch, không phải từ hằng số trong mã
+                      nguồn. Dấu ~ chỉ giữ khi đã có số để làm tròn ý nghĩa. */}
+                  {totalDownloads(npmStats) !== null
+                    ? `~${totalDownloads(npmStats)!.toLocaleString()}`
+                    : "—"}
                 </span>
               </div>
             </div>
@@ -653,8 +691,19 @@ export default function HomePage() {
               {t.latestUpdates}
             </h3>
             <div className="flex flex-col gap-4 font-mono text-xs text-zinc-700">
-              {t.updates.map((u, i) => (
-                <React.Fragment key={u.title}>
+              {/* Nguồn là registry, không phải chữ gõ tay.
+
+                  Bản cũ ghi "RELEASED TIKTOK-API-CLIENT V1.3.0" — sai cả tên gói
+                  (thật ra là tiktokshops-api-client) lẫn số hiệu (npm ở 1.1.0),
+                  tức là công bố một phiên bản chưa từng tồn tại. Ngày tháng thì
+                  nằm cứng trong một mảng riêng, không liên quan gì tới nội dung
+                  bên cạnh nó. Giờ cả ba thứ — tên, số hiệu, ngày — đều đến từ
+                  cùng một lần fetch, nên không thể lệch nhau nữa. */}
+              {npmStats.releases.length === 0 ? (
+                <span className="text-[11px] text-zinc-400">{t.updatesLoading}</span>
+              ) : (
+                npmStats.releases.slice(0, 3).map((rel, i) => (
+                <React.Fragment key={rel.npmName}>
                   {i > 0 && <div className="border-t border-zinc-100" />}
                   <div className="flex gap-2">
                     <span
@@ -662,15 +711,25 @@ export default function HomePage() {
                         i === 0 ? "text-red-700" : "text-zinc-500"
                       }`}
                     >
-                      {UPDATE_DATES[i]}
+                      {releaseMonth(rel.modified)}
                     </span>
                     <div>
-                      <strong className="text-black block text-[11px]">{u.title}</strong>
-                      <span className="text-zinc-500 text-[11px] block mt-0.5">{u.body}</span>
+                      <strong className="text-black block text-[11px] uppercase break-all">
+                        {t.released} {rel.npmName} v{rel.version}
+                      </strong>
+                      <a
+                        href={`https://www.npmjs.com/package/${rel.npmName}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-zinc-500 text-[11px] block mt-0.5 hover:text-black hover:underline"
+                      >
+                        {t.viewOnNpm}
+                      </a>
                     </div>
                   </div>
                 </React.Fragment>
-              ))}
+                ))
+              )}
             </div>
           </section>
 
@@ -776,7 +835,10 @@ export default function HomePage() {
           &copy; {new Date().getFullYear()} {SITE_DOMAIN}. All rights reserved.
         </div>
         <div className="mt-1">
-          Designed with editorial-academic style. Hosted on Cloudflare Pages.
+          {/* Đây là Workers + static assets (xem wrangler.jsonc), KHÔNG phải
+              Cloudflare Pages — hai sản phẩm khác nhau. Một chi tiết hạ tầng
+              sai trên trang của chính người làm backend thì tự phản lại mình. */}
+          Designed with editorial-academic style. Hosted on Cloudflare Workers.
         </div>
       </footer>
 

@@ -2,32 +2,34 @@
 
 import React, { useState, useEffect } from "react";
 import { Download } from "lucide-react";
+import { fetchNpmStats } from "@/lib/npm-stats";
 
 interface NpmStatsCardProps {
   npmName: string;
-  defaultDownloads: number;
 }
 
-export default function NpmStatsCard({
-  npmName,
-  defaultDownloads,
-}: NpmStatsCardProps) {
+export default function NpmStatsCard({ npmName }: NpmStatsCardProps) {
   const [downloads, setDownloads] = useState<number | null>(null);
+  /**
+   * Phiên bản hiện tại trên npm.
+   *
+   * Trang này là server component xuất tĩnh, nên số phiên bản không thể lấy
+   * lúc build mà không làm nó cũ đi ngay sau lần publish kế tiếp. Card này
+   * vốn đã là client component và đã gọi npm, nên đây là chỗ rẻ nhất để hiện
+   * một con số luôn đúng.
+   */
+  const [version, setVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const fetchStats = async () => {
       try {
-        const res = await fetch(
-          `https://api.npmjs.org/downloads/point/last-week/${npmName}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (!cancelled && data?.downloads) {
-            setDownloads(data.downloads);
-          }
-        }
+        const stats = await fetchNpmStats([npmName]);
+        if (cancelled) return;
+        const n = stats.downloads[npmName];
+        if (typeof n === "number") setDownloads(n);
+        if (stats.versions[npmName]) setVersion(stats.versions[npmName]);
       } catch {
         // silent fail
       } finally {
@@ -39,8 +41,6 @@ export default function NpmStatsCard({
       cancelled = true;
     };
   }, [npmName]);
-
-  const displayCount = downloads ?? defaultDownloads;
 
   return (
     <section className="bg-[#fcfcfc] border border-zinc-200 p-4 rounded-lg">
@@ -55,8 +55,13 @@ export default function NpmStatsCard({
           <span className="block font-sans font-black text-2xl text-zinc-950">
             {loading ? (
               <span className="text-zinc-300 animate-pulse">---</span>
+            ) : downloads === null ? (
+              /* Không lấy được thì nói thẳng là không có số, KHÔNG rơi về một
+                 hằng số gõ tay: người đọc không phân biệt được số thật với số
+                 dự phòng, nên số dự phòng chỉ tạo ra niềm tin sai. */
+              <span className="text-zinc-400 text-base">—</span>
             ) : (
-              displayCount.toLocaleString()
+              downloads.toLocaleString()
             )}
           </span>
           <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider">
@@ -65,7 +70,7 @@ export default function NpmStatsCard({
         </div>
       </div>
       <div className="mt-3 font-mono text-[10px] text-zinc-400">
-        Source: npm Registry API
+        {version ? `Latest v${version} · ` : ""}Source: npm Registry API
       </div>
     </section>
   );

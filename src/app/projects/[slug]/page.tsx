@@ -244,7 +244,7 @@ export default async function ProjectDetailPage({
         <aside className="lg:col-span-4 lg:border-l lg:border-zinc-200 lg:pl-6 space-y-8">
 
           {/* Npm Stats */}
-          <NpmStatsCard npmName={pkg.npmName} defaultDownloads={pkg.defaultDownloads} />
+          <NpmStatsCard npmName={pkg.npmName} />
 
           {/* Quick Install */}
           <section className="bg-white border border-zinc-200 rounded-lg p-4 shadow-2xs">

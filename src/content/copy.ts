@@ -42,20 +42,15 @@ export const copy = {
     repos: "repos",
     packages: "packages",
     latestUpdates: "Latest Updates",
-    updates: [
-      {
-        title: "RELEASED SHOPEE-API-CLIENT V2.1.2",
-        body: "Full typings for the Shopee refund and shipping-document APIs.",
-      },
-      {
-        title: "RELEASED TIKTOK-API-CLIENT V1.3.0",
-        body: "Webhook signature verification for TikTok Shop API v2.",
-      },
-      {
-        title: "SHARED BLOG POST ON MONOREPO",
-        body: "The Changesets guide picked up by several large developer groups.",
-      },
-    ],
+    /**
+     * Mục "Latest updates" giờ sinh từ registry npm, nên ở đây chỉ còn phần
+     * chữ cố định. Danh sách cũ gõ tay đã trôi khỏi sự thật: nó công bố
+     * "TIKTOK-API-CLIENT V1.3.0" trong khi gói thật tên
+     * `tiktokshops-api-client` và mới ở 1.1.0.
+     */
+    released: "Released",
+    viewOnNpm: "View on npm →",
+    updatesLoading: "Loading from npm…",
     details: "Details →",
   },
   about: {

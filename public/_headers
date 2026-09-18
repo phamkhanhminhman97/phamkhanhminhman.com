@@ -1,0 +1,38 @@
+# Header cho file tĩnh.
+#
+# Vì sao là file này chứ không phải sửa Worker: chỉ những đường dẫn khai trong
+# `assets.run_worker_first` (wrangler.jsonc) mới đi qua Worker. Ảnh, CSS và JS
+# đi thẳng tới Asset Worker — cố ý như vậy để không tốn một lượt gọi Worker cho
+# mỗi file. Nên header của chúng phải đặt ở đây.
+
+/*
+  # HSTS: buộc trình duyệt chỉ nói chuyện qua HTTPS trong một năm. Không có nó,
+  # lần gõ `phamkhanhminhman.com` đầu tiên vẫn đi bằng HTTP rồi mới bị 301 —
+  # đúng một lượt để người đứng giữa chen vào. `preload` để dành: chỉ bật khi
+  # đã chắc chắn mọi subdomain đều chạy HTTPS, vì gỡ ra khỏi danh sách preload
+  # mất hàng tháng.
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # Cấm trình duyệt "đoán lại" kiểu file. Chặn kiểu tấn công đưa lên một file
+  # trông như ảnh nhưng được đọc thành script.
+  X-Content-Type-Options: nosniff
+  # Không cho site khác nhúng trang này vào iframe (clickjacking).
+  X-Frame-Options: DENY
+  # Gửi đường dẫn đầy đủ cho chính mình, chỉ gửi tên miền khi đi ra ngoài.
+  Referrer-Policy: strict-origin-when-cross-origin
+  # Trang này không dùng camera/mic/vị trí. Khai rỗng để script bên thứ ba
+  # (nếu có ngày nào lọt vào) cũng không xin được các quyền đó.
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+
+# File có hash trong tên (`/_next/static/chunks/0ht900cau6_ur.js`) là BẤT BIẾN:
+# sửa nội dung thì Next sinh tên mới. Trước đây chúng nhận
+# `max-age=0, must-revalidate` như mọi thứ khác, nên mỗi lần quay lại trang là
+# một vòng revalidate cho TỪNG chunk — đo được 9 chunk trên trang chủ.
+# `immutable` nói với trình duyệt: đừng hỏi lại, kể cả khi người dùng bấm tải lại.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Ảnh trong /assets không có hash trong tên nên không thể để `immutable`: đổi
+# ảnh mà giữ nguyên tên thì người cũ sẽ kẹt với bản cũ. Một ngày là đủ lâu để
+# bớt request, đủ ngắn để một lần sửa ảnh lan ra trong vòng 24 giờ.
+/assets/*
+  Cache-Control: public, max-age=86400

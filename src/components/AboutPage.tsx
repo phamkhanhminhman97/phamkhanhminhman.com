@@ -69,7 +69,7 @@ export default function AboutPage() {
                   <picture>
                     <source srcSet="/assets/avatar.webp" type="image/webp" />
                     <img
-                      src="/assets/avatar.png"
+                      src="/assets/avatar.jpg"
                       alt={d.home.avatarAlt}
                       width={384}
                       height={384}

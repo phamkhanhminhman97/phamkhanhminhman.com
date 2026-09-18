@@ -27,6 +27,12 @@ interface Env {
   ADMIN_PASSWORD?: string;
   /** Khoá ký cookie phiên. Đặt bằng `wrangler secret put SESSION_SECRET`. */
   SESSION_SECRET?: string;
+  /**
+   * Bộ đếm chặn dò mật khẩu cho /api/admin/login — xem `ratelimits` trong
+   * wrangler.jsonc. Để optional vì binding này chỉ tồn tại sau khi deploy:
+   * thiếu nó thì đăng nhập vẫn chạy, chỉ là không được chặn.
+   */
+  LOGIN_LIMIT?: RateLimit;
 }
 
 const META_KEY = "post-meta";
@@ -91,6 +97,28 @@ const json = (body: unknown, status = 200, headers: Record<string, string> = {})
     status,
     headers: { "content-type": "application/json; charset=utf-8", ...headers },
   });
+
+/**
+ * Header bảo mật cho những response ĐI QUA Worker.
+ *
+ * File tĩnh không qua đây (xem `run_worker_first`) nên chúng được phủ bằng
+ * `public/_headers`. Hai chỗ cố ý giữ cùng một bộ giá trị: nếu chỉ đặt ở một
+ * nơi thì tuỳ đường dẫn mà trang có hoặc không có bảo vệ, rất khó nhận ra.
+ */
+const SECURITY_HEADERS: Record<string, string> = {
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+};
+
+/** Gắn bộ header trên vào một response đã có, giữ nguyên body và status. */
+function withSecurityHeaders(res: Response): Response {
+  const headers = new Headers(res.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
 
 // ---------------------------------------------------------------- metadata
 
@@ -370,6 +398,24 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
   }
 
   if (url.pathname === "/api/admin/login" && request.method === "POST") {
+    // Chặn dò mật khẩu TRƯỚC khi đọc body.
+    //
+    // Vì sao cần: endpoint này công khai, và `safeEqual` chỉ chống đo thời
+    // gian chứ không chống thử nhiều lần. Không có giới hạn thì một script
+    // đơn giản cứ thế gửi liên tục cho tới khi trúng — trang quản trị chỉ có
+    // đúng một mật khẩu đứng giữa.
+    //
+    // Đếm theo IP thật do Cloudflare gắn ở biên (không giả mạo được từ client).
+    // Vượt ngưỡng trả 429 chứ không phải 401: người gõ nhầm biết là mình đang
+    // bị chặn tạm thời, không phải mật khẩu sai.
+    const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+    const allowed = env.LOGIN_LIMIT ? (await env.LOGIN_LIMIT.limit({ key: ip })).success : true;
+    if (!allowed) {
+      return json({ error: "Thử quá nhiều lần. Đợi một phút rồi thử lại." }, 429, {
+        "retry-after": "60",
+      });
+    }
+
     const body = (await request.json().catch(() => ({}))) as { password?: string };
     if (typeof body.password !== "string" || !safeEqual(body.password, password)) {
       // Cùng một thông báo cho mọi thất bại: không tiết lộ mật khẩu dài bao nhiêu.
@@ -755,76 +801,82 @@ async function filterFeed(res: Response, env: Env, tag: "item" | "url"): Promise
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-
-    // Domain chính đã chuyển sang phamkhanhminhman.com. pkmm.online và
-    // www.<domain> vẫn được gắn Custom Domain (xem wrangler.jsonc) để link
-    // cũ không chết, nhưng mọi request trên các host đó chuyển vĩnh viễn
-    // (301) về apex mới — giữ đúng MỘT địa chỉ chính cho Google index,
-    // tránh bị tính là nội dung trùng lặp giữa nhiều domain.
-    const CANONICAL_HOST = "phamkhanhminhman.com";
-    if (url.hostname !== CANONICAL_HOST || url.protocol !== "https:") {
-      // Ép cả protocol lẫn hostname trong CÙNG một bước nhảy: Google Search
-      // Console (Change of address) kiểm tra "chuyển hướng 301 từ trang chủ"
-      // bằng cách gọi thẳng http://pkmm.online/ và đòi nhận về đúng 1 bước
-      // 301 tới domain mới. Trước đây chỉ đổi hostname nên một request
-      // http:// sẽ nhảy sang http://phamkhanhminhman.com/ (vẫn sai giao
-      // thức) — Cloudflare "Always Use HTTPS" ở cấp zone đã chen thêm một
-      // bước http→https TRƯỚC KHI request tới được Worker này, tạo thành
-      // chuỗi 2 bước mà công cụ của Google không theo hết.
-      url.protocol = "https:";
-      url.hostname = CANONICAL_HOST;
-      return Response.redirect(url.toString(), 301);
-    }
-
-    if (url.pathname.startsWith("/api/admin/")) {
-      return handleApi(request, env, url);
-    }
-
-    // Trình duyệt báo về sau khi trang đã mở. Đặt trước phần ghi nhật ký để
-    // chính lượt gọi này không bị đếm thành một lượt xem.
-    if (url.pathname === "/api/pulse" && request.method === "POST") {
-      return handleBeacon(request, env);
-    }
-
-    // Ghi nhật ký SAU khối chuyển hướng và khối /api/admin ở trên: lượt bị
-    // 301 sang domain chính sẽ được ghi lại ở request kế tiếp (trên đúng
-    // domain), nên ghi cả hai chỉ tạo ra hàng đôi. Còn các lượt gọi API của
-    // chính trang quản trị thì không phải là người xem site.
-    //
-    // `waitUntil` giữ Worker sống để hoàn tất việc ghi SAU KHI response đã
-    // gửi đi — người xem không chờ thêm mili-giây nào.
-    //
-    // `vid` nối hàng vừa ghi với báo cáo mà trình duyệt gửi về lát nữa.
-    const vid = crypto.randomUUID();
-    ctx.waitUntil(recordVisit(request, env, url, vid));
-
-    // Site từng song ngữ; bản tiếng Việt đã gỡ. Những URL /vi/* đã được index
-    // nên chuyển vĩnh viễn về bản tiếng Anh tương ứng thay vì trả 404 hàng loạt.
-    if (url.pathname === "/vi" || url.pathname.startsWith("/vi/")) {
-      const rest = url.pathname.slice(3) || "/";
-      return Response.redirect(`${url.origin}${rest}${url.search}`, 301);
-    }
-
-    // Bài bị ẩn: trả đúng trang 404 của site, không phải một trang trắng.
-    const slug = slugOf(url.pathname);
-    if (slug && isHidden(await readMeta(env), slug)) {
-      const notFound = await env.ASSETS.fetch(new URL("/404.html", url.origin));
-      return new Response(notFound.body, { status: 404, headers: notFound.headers });
-    }
-
-    const res = await env.ASSETS.fetch(request);
-
-    if (url.pathname === "/rss.xml") return filterFeed(res, env, "item");
-    if (url.pathname === "/sitemap.xml") return filterFeed(res, env, "url");
-
-    const type = res.headers.get("content-type") ?? "";
-    if (type.includes("text/html")) {
-      // Không đo trang quản trị: đó là mình tự xem, đếm vào chỉ làm nhiễu.
-      const track = !url.pathname.startsWith("/admin");
-      return transformHtml(res, env, vid, track);
-    }
-
-    return res;
+    // Bọc một lớp ngoài cùng để MỌI nhánh trả về đều có header bảo mật —
+    // gắn ở từng `return` thì chỉ cần thêm một nhánh mới là sót.
+    return withSecurityHeaders(await handle(request, env, ctx));
   },
 } satisfies ExportedHandler<Env>;
+
+async function handle(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+
+  // Domain chính đã chuyển sang phamkhanhminhman.com. pkmm.online và
+  // www.<domain> vẫn được gắn Custom Domain (xem wrangler.jsonc) để link
+  // cũ không chết, nhưng mọi request trên các host đó chuyển vĩnh viễn
+  // (301) về apex mới — giữ đúng MỘT địa chỉ chính cho Google index,
+  // tránh bị tính là nội dung trùng lặp giữa nhiều domain.
+  const CANONICAL_HOST = "phamkhanhminhman.com";
+  if (url.hostname !== CANONICAL_HOST || url.protocol !== "https:") {
+    // Ép cả protocol lẫn hostname trong CÙNG một bước nhảy: Google Search
+    // Console (Change of address) kiểm tra "chuyển hướng 301 từ trang chủ"
+    // bằng cách gọi thẳng http://pkmm.online/ và đòi nhận về đúng 1 bước
+    // 301 tới domain mới. Trước đây chỉ đổi hostname nên một request
+    // http:// sẽ nhảy sang http://phamkhanhminhman.com/ (vẫn sai giao
+    // thức) — Cloudflare "Always Use HTTPS" ở cấp zone đã chen thêm một
+    // bước http→https TRƯỚC KHI request tới được Worker này, tạo thành
+    // chuỗi 2 bước mà công cụ của Google không theo hết.
+    url.protocol = "https:";
+    url.hostname = CANONICAL_HOST;
+    return Response.redirect(url.toString(), 301);
+  }
+
+  if (url.pathname.startsWith("/api/admin/")) {
+    return handleApi(request, env, url);
+  }
+
+  // Trình duyệt báo về sau khi trang đã mở. Đặt trước phần ghi nhật ký để
+  // chính lượt gọi này không bị đếm thành một lượt xem.
+  if (url.pathname === "/api/pulse" && request.method === "POST") {
+    return handleBeacon(request, env);
+  }
+
+  // Ghi nhật ký SAU khối chuyển hướng và khối /api/admin ở trên: lượt bị
+  // 301 sang domain chính sẽ được ghi lại ở request kế tiếp (trên đúng
+  // domain), nên ghi cả hai chỉ tạo ra hàng đôi. Còn các lượt gọi API của
+  // chính trang quản trị thì không phải là người xem site.
+  //
+  // `waitUntil` giữ Worker sống để hoàn tất việc ghi SAU KHI response đã
+  // gửi đi — người xem không chờ thêm mili-giây nào.
+  //
+  // `vid` nối hàng vừa ghi với báo cáo mà trình duyệt gửi về lát nữa.
+  const vid = crypto.randomUUID();
+  ctx.waitUntil(recordVisit(request, env, url, vid));
+
+  // Site từng song ngữ; bản tiếng Việt đã gỡ. Những URL /vi/* đã được index
+  // nên chuyển vĩnh viễn về bản tiếng Anh tương ứng thay vì trả 404 hàng loạt.
+  if (url.pathname === "/vi" || url.pathname.startsWith("/vi/")) {
+    const rest = url.pathname.slice(3) || "/";
+    return Response.redirect(`${url.origin}${rest}${url.search}`, 301);
+  }
+
+  // Bài bị ẩn: trả đúng trang 404 của site, không phải một trang trắng.
+  const slug = slugOf(url.pathname);
+  if (slug && isHidden(await readMeta(env), slug)) {
+    const notFound = await env.ASSETS.fetch(new URL("/404.html", url.origin));
+    return new Response(notFound.body, { status: 404, headers: notFound.headers });
+  }
+
+  const res = await env.ASSETS.fetch(request);
+
+  if (url.pathname === "/rss.xml") return filterFeed(res, env, "item");
+  if (url.pathname === "/sitemap.xml") return filterFeed(res, env, "url");
+
+  const type = res.headers.get("content-type") ?? "";
+  if (type.includes("text/html")) {
+    // Không đo trang quản trị: đó là mình tự xem, đếm vào chỉ làm nhiễu.
+    const track = !url.pathname.startsWith("/admin");
+    return transformHtml(res, env, vid, track);
+  }
+
+  return res;
+}
