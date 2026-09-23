@@ -1,6 +1,6 @@
 # phamkhanhminhman.com - Portfolio & Blog
 
-Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh Mẫn** — xây dựng bằng **Next.js 16.2.6 (App Router)**, **Tailwind CSS v4**, **TypeScript 5** và xuất bản dưới dạng **Static Export (HTML/CSS/JS)** lên **Cloudflare Pages**. Giao diện được thiết kế theo phong cách báo chí học thuật (academic-editorial) sang trọng tối giản.
+Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh Mẫn** — xây dựng bằng **Next.js 16.2.6 (App Router)**, **Tailwind CSS v4**, **TypeScript 5** và xuất bản dưới dạng **Static Export (HTML/CSS/JS)** lên **Cloudflare Workers** (static assets + một Worker nhỏ ở `worker/index.ts`). Giao diện được thiết kế theo phong cách báo chí học thuật (academic-editorial) sang trọng tối giản.
 
 🌐 **Website:** [phamkhanhminhman.com](https://phamkhanhminhman.com)
 
@@ -9,7 +9,7 @@ Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh 
 ## Tính Năng Nổi Bật
 
 - **📄 Project Detail Pages:** 4 trang chi tiết cho từng thư viện npm (Shopee, TikTok, Lazada, All-in-One) với code examples, số liệu thống kê downloads, và hướng dẫn cài đặt nhanh.
-- **👤 About / CV Page:** Trang giới thiệu cá nhân với timeline kinh nghiệm làm việc, kỹ năng, học vấn.
+- **👤 About / CV Page:** Trang giới thiệu cá nhân với timeline kinh nghiệm làm việc, kỹ năng, học vấn, kèm **CV PDF tải về** (`public/cv/`, sinh từ cùng dữ liệu — xem "Tạo lại CV").
 - **📝 Blog:** 3 bài viết kỹ thuật (Shopee API, Webhook Security, Monorepo) với syntax highlighting và định dạng học thuật.
 - **🔍 SEO Đầy Đủ:** `sitemap.xml` và `robots.txt` tự động, `generateMetadata` cho từng trang/blog/project.
 - **🕒 Clock & Weather Widget:** Đồng hồ hệ thống tự động cập nhật và widget thời tiết thời gian thực tại TP. Hồ Chí Minh sử dụng Open-Meteo API.
@@ -21,7 +21,7 @@ Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh 
 - **📬 Form liên hệ không Backend:** Web3Forms qua biến môi trường; chưa cấu hình thì tự rơi về `mailto:`.
 - **🔎 SEO nâng cao:** `metadataBase`, OpenGraph, Twitter Card, title template, và **JSON-LD `Person` schema** (quyết định Google hiển thị ra sao khi ai đó gõ đúng tên).
 - **♿ Skip-link** tới `<main id="main">` cho người dùng bàn phím.
-- **⚡ Static Export siêu nhẹ:** Toàn bộ website là file tĩnh, lý tưởng cho Cloudflare Pages (tải trang siêu nhanh, 0% RAM server, bảo mật tuyệt đối).
+- **⚡ Static Export siêu nhẹ:** Trang là file tĩnh do Cloudflare phục vụ thẳng; Worker chỉ đứng trước vài đường dẫn (admin, ẩn/ghim bài, nhật ký lượt xem).
 - **🚫 Custom 404 Page:** Trang báo lỗi 404 được thiết kế riêng.
 
 ---
@@ -160,14 +160,16 @@ NEXT_PUBLIC_WEB3FORMS_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 #### 🔴 Trên Cloudflare — đọc kỹ, chỗ này dễ nhầm
 
-Dự án này là **Worker chỉ có static assets** (`wrangler.jsonc` có `assets`, không có `main`).
-Dashboard sẽ báo:
+Có **hai chỗ đặt biến** trong dashboard của Worker, và chỉ một chỗ đúng cho key này:
 
-> *"Variables cannot be added to a Worker that only has static assets."*
+| Chỗ | Dùng cho |
+|---|---|
+| **Settings → Build → Build variables** (Workers Builds) | `NEXT_PUBLIC_WEB3FORMS_KEY` — **đặt ở đây** |
+| **Settings → Variables and secrets** | Biến lúc chạy của Worker (`ADMIN_PASSWORD`, `SESSION_SECRET`) — đặt key form ở đây là vô tác dụng |
 
-**Đúng, và không sao cả** — vì `NEXT_PUBLIC_*` là biến **LÚC BUILD**, không phải lúc chạy.
+Lý do: `NEXT_PUBLIC_*` là biến **LÚC BUILD**, không phải lúc chạy.
 Nó bị nhúng thẳng vào file JS khi `next build`. Biến runtime của Cloudflare **không bao giờ**
-dùng được cho nó, kể cả nếu dashboard có cho thêm.
+dùng được cho nó.
 
 Kiểm chứng:
 
@@ -176,12 +178,13 @@ NEXT_PUBLIC_WEB3FORMS_KEY= npm run build && grep -rl "<key>" out/   # -> 0 file
 npm run build                            && grep -rl "<key>" out/   # -> 1 file
 ```
 
-**Hai đường deploy, chọn một:**
+**Deploy: chỉ cần `git push`.** Worker đã nối với GitHub qua **Workers Builds**, push lên
+`main` là Cloudflare tự build (dùng Build variables ở trên) và deploy lên production. Xem mục
+"Triển khai" bên dưới.
 
-| | Cần làm gì |
-|---|---|
-| **Build ở máy** *(khuyến nghị — đơn giản nhất)* | `npm run deploy` — build tại chỗ với `.env.local` rồi `wrangler deploy`. Cloudflare chỉ phục vụ file tĩnh, **không cần cấu hình biến gì cả** |
-| **Cloudflare tự build** (Git integration) | Đặt biến ở **Workers Builds → Build variables** — mục khác hẳn với *Variables and secrets* ở ảnh trên |
+`npm run deploy` (build ở máy với `.env.local` rồi `wrangler deploy`) vẫn dùng được, nhưng
+là **đường tay, dự phòng** — ví dụ khi Workers Builds lỗi. Đừng chạy nó sau mỗi lần push: bản
+đó đã được deploy rồi, chạy thêm chỉ đẻ ra một bản deploy trùng.
 
 `npm run build` chạy `prebuild` → `scripts/check-build-env.mjs`, in cảnh báo khung vàng nếu
 thiếu khoá. Không có nó thì rất dễ deploy một bản không có form mà không ai nhận ra, vì trang
@@ -220,51 +223,58 @@ Dữ liệu các package (tên, mô tả, code examples) nằm ở:
 
 ---
 
-## Hướng dẫn Triển khai lên Cloudflare Pages (Git Integration)
+## Triển khai (Cloudflare Workers Builds)
 
-Khi bạn đẩy code lên GitHub, Cloudflare Pages sẽ tự động nhận diện thay đổi, build và deploy website của bạn lên mạng lưới CDN toàn cầu của họ.
+> ⚠️ **Push lên `main` = lên production.** Không có bước duyệt nào ở giữa. Muốn xem trước
+> thì chạy ở local (`npm run build && npx wrangler dev --port 8791 --local`) trước khi push.
 
-### Bước 1: Đẩy mã nguồn lên GitHub
+Site là **một Worker** tên `phamkhanhminhman` (không phải Cloudflare Pages), gồm hai phần:
 
-Nếu bạn chưa tạo repo trên GitHub, hãy tạo một repo trống tên `phamkhanhminhman.com` và chạy lệnh sau ở thư mục local để push code:
+- **Static assets** — thư mục `out/` do `next build` tạo ra.
+- **Worker script** `worker/index.ts` — chỉ chạy trên các đường dẫn khai trong
+  `assets.run_worker_first` (admin, ẩn/ghim bài, nhật ký lượt xem).
+
+Worker được nối với repo GitHub qua **Workers Builds**: mỗi lần push lên `main`, Cloudflare
+tự build rồi deploy. Kết quả hiện thành check-run *"Workers Builds: phamkhanhminhman"* trên
+commit ở GitHub, và trong `npx wrangler deployments list`.
+
+Mọi cấu hình còn lại nằm trong `wrangler.jsonc`, được deploy cùng code:
+
+| Khai trong `wrangler.jsonc` | Là gì |
+|---|---|
+| `routes` (`custom_domain: true`) | `phamkhanhminhman.com` và `www.` trỏ thẳng vào Worker, Cloudflare tự lo DNS + SSL |
+| `kv_namespaces` | Metadata ẩn/ghim bài (`/admin`) |
+| `d1_databases` (`DB`) | Nhật ký lượt xem (`/admin/visitors`) |
+| `ratelimits` (`LOGIN_LIMIT`) | Chặn dò mật khẩu đăng nhập admin |
+
+Những thứ **không** nằm trong repo, phải đặt một lần trên Cloudflare:
+
+| Cái gì | Đặt ở đâu |
+|---|---|
+| `NEXT_PUBLIC_WEB3FORMS_KEY` | Workers Builds → **Build variables** |
+| `ADMIN_PASSWORD`, `SESSION_SECRET` | `npx wrangler secret put …` (xem "Trang quản trị") |
+| Bảng D1 | `npx wrangler d1 migrations apply phamkhanhminhman --remote` — **deploy không tự chạy migration** |
+
+Repo trên GitHub nay là `phamkhanhminhman97/phamkhanhminhman.com`; remote cũ `pkmm.online` vẫn
+push được nhờ GitHub tự chuyển hướng, nhưng nên cập nhật:
 
 ```bash
-git init
-git add .
-git commit -m "feat: init portfolio website"
-git branch -M main
-git remote add origin git@github.com:YOUR_GITHUB_USERNAME/phamkhanhminhman.com.git
-git push -u origin main
+git remote set-url origin git@github.com:phamkhanhminhman97/phamkhanhminhman.com.git
 ```
-*(Thay thế `YOUR_GITHUB_USERNAME` bằng username GitHub của bạn).*
 
-### Bước 2: Kết nối Cloudflare Pages với GitHub
+### Tạo lại CV (`public/cv/Pham-Khanh-Minh-Man-CV.pdf`)
 
-1. Truy cập vào **Cloudflare Dashboard**.
-2. Chọn **Workers & Pages** ở menu bên trái.
-3. Nhấp vào nút **Create Application**, sau đó chọn tab **Pages**.
-4. Chọn **Connect to Git** và liên kết với tài khoản GitHub của bạn.
-5. Chọn repository `phamkhanhminhman.com` mà bạn vừa push code lên.
+CV PDF sinh từ **chính** `src/data/profile.tsx` (và danh sách gói trong `projects.tsx`), không
+có bản chép tay thứ hai. Sửa profile xong thì:
 
-### Bước 3: Cấu hình Build Settings trên Cloudflare
+```bash
+pip install reportlab          # một lần
+python3 tools/build-cv.py      # ghi đè public/cv/Pham-Khanh-Minh-Man-CV.pdf
+```
 
-Tại trang cấu hình deploy, bạn điền các thông tin sau:
-- **Project name:** `phamkhanhminhman` (hoặc tùy bạn đặt).
-- **Production branch:** `main`.
-- **Framework preset:** Chọn **Next.js (Static HTML Export)**.
-- **Build command:** `npm run build`.
-- **Build output directory:** `out`.
-- **Environment variables (Tùy chọn nếu build lỗi Node cũ):**
-  - Thêm một biến: `NODE_VERSION` = `20` (hoặc cao hơn).
-
-Nhấp vào **Save and Deploy**. Cloudflare sẽ mất khoảng 1-2 phút để build và cấp cho bạn một domain chạy thử miễn phí dạng `*.pages.dev`.
-
-### Bước 4: Trỏ Custom Domain `phamkhanhminhman.com` về Cloudflare Pages
-
-1. Tại dashboard dự án Pages vừa tạo, chuyển sang tab **Custom Domains**.
-2. Nhấp vào **Set up a custom domain**.
-3. Nhập tên miền của bạn: `phamkhanhminhman.com` và làm theo các bước tiếp theo.
-4. Cloudflare sẽ tự động cập nhật các bản ghi DNS cần thiết (CNAME trỏ về Pages của bạn) và kích hoạt SSL (HTTPS) hoàn toàn miễn phí.
+rồi commit file PDF mới cùng với thay đổi profile. Script dùng font hệ thống của macOS
+(Georgia, Arial, Arial Unicode cho chữ Nhật), nên chạy ở máy và **không** nằm trong bước build —
+quên chạy thì site vẫn phục vụ bản PDF cũ.
 
 ---
 
@@ -312,20 +322,16 @@ Phần **thứ tự** thì không gặp vấn đề này: nó dùng CSS `order`,
 ### Cài đặt lần đầu
 
 ```bash
-# 1. Deploy — lần đầu wrangler tự tạo KV namespace và ghi id vào wrangler.jsonc
-npm run deploy
-
-# 2. Đặt mật khẩu đăng nhập (wrangler sẽ hỏi, không gõ vào dòng lệnh)
+# 1. Đặt mật khẩu đăng nhập (wrangler sẽ hỏi, không gõ vào dòng lệnh)
 npx wrangler secret put ADMIN_PASSWORD
 
-# 3. Đặt khoá ký cookie phiên — dùng một chuỗi ngẫu nhiên dài, KHÔNG trùng mật khẩu
+# 2. Đặt khoá ký cookie phiên — dùng một chuỗi ngẫu nhiên dài, KHÔNG trùng mật khẩu
 npx wrangler secret put SESSION_SECRET
-
-# 4. Deploy lại để Worker nhận secret
-npm run deploy
 ```
 
-Sau bước 1, **commit lại `wrangler.jsonc`** vì wrangler đã ghi `id` của KV vào đó.
+`secret put` có hiệu lực ngay, không cần deploy lại. KV namespace đã có sẵn `id` trong
+`wrangler.jsonc` (lần deploy đầu tiên wrangler tự tạo và ghi vào). Từ đó trở đi, đổi code
+admin thì chỉ cần push.
 
 Chưa đặt secret thì `/api/admin/*` trả 503 kèm thông báo rõ — site công khai vẫn
 chạy bình thường.
@@ -363,7 +369,27 @@ mở thẳng file trong VS Code.
 
 ## Nhật ký lượt xem (`/admin/visitors`)
 
-Xem IP, vị trí và nhà mạng của những người đã ghé trang.
+Xem IP, thành phố và nhà mạng của những người đã ghé trang — đủ để biết ai là người thật, ai
+là máy quét.
+
+### Ghi gì, không ghi gì
+
+Footer của site có một dòng công khai đúng những gì được ghi (`copy.footer.privacy`). Câu đó
+và code phải khớp nhau: đổi cột nào ở đây thì sửa luôn câu kia.
+
+| Ghi | Không ghi (đã gỡ) |
+| --- | --- |
+| IP, quốc gia / thành phố, nhà mạng (ASN) | Toạ độ lat/lon, mã bưu chính |
+| Chuỗi User-Agent, đường dẫn, nguồn giới thiệu | Tên card đồ hoạ qua WebGL |
+| Kích thước màn hình, số nhân CPU, RAM, có cảm ứng | Đời máy / phiên bản hệ điều hành qua Client Hints |
+| Múi giờ, tốc độ mạng, có tương tác hay không | Cookie theo dõi, analytics bên thứ ba |
+| Mã ngẫu nhiên `_pk` trong localStorage | |
+
+Toạ độ, WebGL và Client Hints từng có ở vòng đầu. Đã gỡ vì chúng là kỹ thuật **lấy dấu vân
+tay trình duyệt** hoặc định vị chi tiết, trong khi câu hỏi duy nhất của trang này là "người
+hay máy" — và câu đó trả lời được bằng hành vi (cuộn, bấm, ở lại), không cần biết người ta
+dùng chip gì. Cột cũ vẫn còn trong bảng D1 cho khỏi phải migration, nhưng không còn được ghi;
+dữ liệu cũ tự hết hạn sau 90 ngày.
 
 ### Vì sao phải tự làm
 
@@ -402,15 +428,14 @@ một đoạn script ~1KB (`beaconScript()` trong `worker/index.ts`) báo về `
 | Mức | Nghĩa là | Bằng chứng |
 | --- | --- | --- |
 | `human = 0` | Chưa rõ | Chỉ có một request trần — `curl` cũng tạo ra được |
-| `human = 1` | Trình duyệt thật | JavaScript chạy được, đọc ra được màn hình và card đồ hoạ |
+| `human = 1` | Trình duyệt thật | JavaScript chạy được |
 | `human = 2` | **Người thật** | Có cuộn / bấm / ở lại trên 15 giây |
 
 Mức 2 là thứ máy quét gần như không giả được: phải vừa chạy JavaScript vừa có hành vi.
 
-Script cũng lấp những chỗ Cloudflare không biết: tên chip đồ hoạ qua WebGL (nói được đời
-máy khi User-Agent đã giấu), tên máy qua Client Hints, độ phân giải, số nhân CPU, RAM,
-múi giờ trình duyệt. **Múi giờ trình duyệt lệch với múi giờ theo IP là dấu hiệu VPN** —
-trang quản trị gắn nhãn `VPN?` cho trường hợp đó.
+Script cũng gửi vài thông tin thô: độ phân giải, số nhân CPU, RAM, múi giờ trình duyệt.
+**Múi giờ trình duyệt lệch giờ thật với múi giờ theo IP** có thể là VPN — trang quản trị gắn
+nhãn `Lệch giờ` cho trường hợp đó (cũng có thể chỉ là người đang ở nước ngoài).
 
 Ngoài ra `cid` (mã máy lưu trong localStorage) là thứ nhận ra "vẫn người đó" khi IP di động
 đổi liên tục — gộp theo IP thôi thì một người sẽ bị xé thành nhiều dòng.
@@ -429,15 +454,10 @@ Safari cố tình đóng băng `18_7` để không làm hỏng các trang cũ d�
 thật sang `Version/`. Đọc bằng một quy tắc chung là sai một trong hai trường hợp, nên
 `osVersion()` tách riêng nhánh Safari.
 
-**Đời máy suy từ độ phân giải, không từ chuỗi nhận dạng.** Trên iOS thì:
-
-- WebGL trả về đúng chuỗi `"Apple GPU"` cho mọi máy — đã kiểm chứng, vô dụng để phân biệt.
-- Client Hints (thứ cho ra `"Pixel 8"` trên Android) thì Apple không hỗ trợ.
-- Chuỗi nhận dạng chỉ nói `"iPhone"`, không nói đời nào.
-
-Còn lại độ phân giải logic — thứ không nói dối được vì nó là kích thước thật của màn hình.
-Bảng `SCREENS` tra ra `390x844@3 → "iPhone 12/13/14"`. Không tách được các máy dùng chung một
-cỡ màn, nên trả về cả nhóm thay vì đoán bừa một cái tên.
+**Đời máy (điện thoại) đoán từ độ phân giải.** Chuỗi nhận dạng chỉ nói `"iPhone"`, không nói
+đời nào. Độ phân giải logic là manh mối thô còn lại: bảng `SCREENS` tra ra
+`390x844@3 → "iPhone 12/13/14"`. Không tách được các máy dùng chung một cỡ màn, nên trả về cả
+nhóm thay vì đoán bừa — đủ để hình dung, không đủ để nhận dạng một người, và thế là vừa.
 
 ### Vài chỗ khuất khác
 
@@ -451,25 +471,17 @@ cỡ màn, nên trả về cả nhóm thay vì đoán bừa một cái tên.
   cả hai đều ra "Vietnam Posts and Telecommunications Group". Loại kết nối phải hỏi trình
   duyệt (`navigator.connection`), mà Safari lại không hỗ trợ — nên cột này thường trống trên iPhone.
 
-### Máy tính: đọc chip, không đọc màn hình
+### Máy tính: không đoán đời máy
 
-Một lượt thử trên MacBook M4 lộ ra bốn chỗ sai của vòng trước:
-
-| Chỗ sai | Nguyên nhân | Đã sửa |
-| --- | --- | --- |
-| "Đời máy: —" | Bảng `SCREENS` chỉ có điện thoại | Máy tính suy từ chip: `"Apple M4"` → `"Mac (M4)"` |
-| "Hệ điều hành: 27.0.0" trần | Không ghép tên hệ | Hiện `"macOS 27"` |
-| "4G / Wi-Fi nhanh" trên máy bàn | `effectiveType` **không** nói loại kết nối vật lý | Đổi nhãn thành tốc độ: `"10.0 Mbps · nhanh"` |
-| Gắn cờ `VPN?` nhầm | Chỉ so TÊN múi giờ | So ĐỘ LỆCH GIỜ thật, đổi nhãn thành `"Lệch giờ"` |
-
-Hai bài học chung:
-
-- **Độ phân giải vô dụng trên máy tính.** Máy thật cho `1334x1000@2` — không khớp MacBook nào,
-  vì đó là màn ngoài hoặc màn đã chia tỉ lệ. Ngược lại chip thì chỉ có một nghĩa. Nên
-  `guessModel()` thử chip trước, rồi mới tới bảng độ phân giải (dành cho điện thoại).
-- **Mac và Windows cũng đóng băng phiên bản trong chuỗi nhận dạng**, y như Safari trên iOS:
-  Mac vĩnh viễn khai `"Mac OS X 10_15_7"` (từ 2020), Windows 11 vẫn khai `"Windows NT 10.0"`.
-  Chỉ Client Hints nói thật, nên nó được ưu tiên tuyệt đối.
+- **Độ phân giải vô dụng trên máy tính.** Một Mac mini M4 thật cho `1334x1000@2` — không khớp
+  máy nào, vì đó là màn ngoài cắm vào. Nên với máy tính, `guessModel()` chỉ trả về loại máy
+  kèm độ phân giải (`"Mac (1334x1000)"`), không đoán đời máy.
+- **Mac và Windows đóng băng phiên bản trong chuỗi nhận dạng**, y như Safari trên iOS: Mac
+  vĩnh viễn khai `"Mac OS X 10_15_7"` (từ 2020), Windows 11 vẫn khai `"Windows NT 10.0"`.
+  Nguồn nói thật duy nhất là Client Hints — đã gỡ (xem "Ghi gì, không ghi gì") — nên
+  `osVersion()` trả về rỗng cho máy tính thay vì một con số sai.
+- **`effectiveType` không nói loại kết nối vật lý**, nên nhãn hiện tốc độ
+  (`"10.0 Mbps · nhanh"`) chứ không hiện "4G / Wi-Fi".
 
 `effectiveType` đáng nói riêng: tên gọi gợi ý loại mạng nhưng thực chất chỉ xếp hạng tốc độ
 vào bốn bậc mượn tên công nghệ di động. Máy bàn cắm cáp quang vẫn ra `"4g"` — nghĩa là "nhanh
@@ -487,17 +499,14 @@ duyệt web sẽ mất dấu và phải đánh dấu lại — chấp nhận đ�
 
 ### Bảng tra đời máy đã kiểm chứng
 
-Bốn lượt thử trên máy thật, đối chiếu với sự thật do chủ máy xác nhận:
+Lượt thử trên điện thoại thật, đối chiếu với sự thật do chủ máy xác nhận (chỉ dùng độ phân
+giải và chuỗi nhận dạng — không phụ thuộc WebGL hay Client Hints nên vẫn đúng sau khi gỡ):
 
 | Máy thật | Độ phân giải | Hệ thống đoán | Đúng? |
 | --- | --- | --- | --- |
 | iPhone 12, Chrome, iOS 27 | `390x844@3` | iPhone 12/13/14 · iOS 27 | ✅ |
 | iPhone 12, Safari, iOS 27 | `390x844@3` | iPhone 12/13/14 · iOS 27 | ✅ |
 | iPhone 11, Safari, iOS 27 | `414x896@2` | iPhone XR/11 · iOS 27 | ✅ |
-| Mac mini M4, Chrome, macOS 27 | `1334x1000@2` (màn ngoài) | Mac (M4) · macOS 27 | ✅ |
-
-Mac mini là ví dụ rõ nhất cho việc **không được suy đời máy tính từ độ phân giải**: máy này
-không có màn hình tích hợp, con số đo được hoàn toàn là của màn ngoài cắm vào.
 
 ### Bắt máy quét giả trình duyệt
 
@@ -538,11 +547,11 @@ bằng `MAX()` nên báo cáo gửi lúc đóng tab không kéo tụt kết qu�
 
 ```bash
 npx wrangler d1 migrations apply phamkhanhminhman --remote
-npm run deploy
 ```
 
-Đăng nhập bằng đúng mật khẩu của `/admin`. Nếu trang báo thiếu bảng `visits` thì chạy lại lệnh
-migration ở trên.
+Chỉ cần một lần (và mỗi khi có file mới trong `migrations/`) — push code **không** tự chạy
+migration. Đăng nhập bằng đúng mật khẩu của `/admin`. Nếu trang báo thiếu bảng `visits` thì
+chạy lại lệnh migration ở trên.
 
 ## Giấy phép
 
