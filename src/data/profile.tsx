@@ -1,14 +1,30 @@
 // ─── Profile Data for About Page ───────────────────────────────────────────
 
-export interface Experience {
-  period: string;
-  title: string;
-  company: string;
+/** Một dự án (hoặc một nhóm việc) trong một công ty. */
+export interface Project {
+  name: string;
+  /** Bỏ trống khi dự án kéo dài theo cả thời gian ở công ty. */
+  period?: string;
   /** MỘT câu: hệ thống đó là gì. Không kể lể. */
-  summary: string;
-  /** 2-4 gạch đầu dòng: mình đã LÀM gì, ưu tiên thứ đo được. */
+  summary?: string;
+  /** 1-3 gạch đầu dòng: mình đã LÀM gì, ưu tiên thứ đo được. */
   highlights: string[];
   technologies: string[];
+}
+
+/**
+ * Một công ty, các dự án nằm bên dưới.
+ *
+ * Gộp theo công ty để người đọc thấy ba năm ở Devtify là ba năm ở MỘT chỗ,
+ * không phải ba lần nhảy việc, và các dự án chồng thời gian không trông như
+ * hai công việc cùng lúc.
+ */
+export interface Experience {
+  company: string;
+  title: string;
+  period: string;
+  summary?: string;
+  projects: Project[];
 }
 
 /** Hệ thống đang làm — mô tả kỹ thuật, KHÔNG nêu tên khách hàng. */
@@ -62,6 +78,7 @@ export interface ProfileData {
   location: string;
   email: string;
   github: string;
+  linkedin: string;
   bio: string[];
   experiences: Experience[];
   skills: Skill[];
@@ -77,118 +94,119 @@ export const profile: ProfileData = {
   location: "Da Nang, Vietnam",
   email: "phamkhanhminhman97@gmail.com",
   github: "https://github.com/phamkhanhminhman97",
+  linkedin: "https://www.linkedin.com/in/pkmm97",
   bio: [
-    "Backend engineer with 5+ years in e-commerce and multi-marketplace API integration. Focused on NestJS, TypeScript, and event-driven systems on AWS.",
-    "Author of several open-source libraries for the Shopee, TikTok Shop and Lazada Open APIs — organised as a monorepo with npm workspaces, Changesets and automated CI/CD.",
-    "Hands-on with order processing, inventory sync, recurring billing on Stripe and PayPal, local payment gateways (Fundiin, Payoo, ZaloPay), shipping providers (GHN, Ahamove, TikiNOW) and ERP (NaviWorld).",
-    "Since 2026, a graduate student in Computer Science (research track) at Danang University of Science and Technology. Research interest: memory for LLM agents — specifically, separating what graph structure contributes from what the data representation contributes, using budget-matched controlled experiments and statistics at the correct unit of analysis.",
+    "Backend engineer with 5+ years in e-commerce, payments and multi-marketplace API integration, mostly in NestJS and TypeScript with event-driven work on AWS. Author of four open-source client libraries for the Shopee, TikTok Shop and Lazada Open APIs, published on npm.",
+    "Since 2026, a graduate student in Computer Science (research track) at Danang University of Science and Technology, interested in memory for LLM agents.",
   ],
   experiences: [
     {
-      period: "2026 —",
+      company: "DiproTech",
       title: "Backend Developer",
-      company: "DiproTech",
-      summary: "Manufacturing simulation, a subscription publishing platform and a study app, for Japanese clients.",
-      highlights: ["Engineering detail in Systems above."],
-      technologies: [
-        "Python",
-        "Django",
-        "FastAPI",
-        "Ruby on Rails",
-        "PostgreSQL",
-        "Firestore",
-        "Stripe",
-        "PayPal",
-        "OPC-UA",
+      period: "07/2025 —",
+      summary: "Backend work for Japanese clients, often more than one project at a time.",
+      projects: [
+        {
+          name: "Social App",
+          period: "07/2025 — 03/2026",
+          summary: "Newsfeed and content distribution, team of 10.",
+          highlights: [
+            "Owned the newsfeed backend. The shuffled feed is ordered by a hash of a per-user seed and the post id, so pagination stays stable without storing any order.",
+            "Built the deploy path: dev and staging on Docker Compose over SSH, production on ECS.",
+            "Images are built with a Buildx layer cache and tagged by commit SHA in ECR; a production run registers a new task definition per service and can ship one service without touching the others.",
+          ],
+          technologies: ["NestJS", "TypeScript", "PostgreSQL", "Redis", "AWS ECS / ECR", "GitHub Actions", "Docker Buildx"],
+        },
+        {
+          name: "Other client projects",
+          highlights: [
+            "Manufacturing simulation bridged to factory equipment over OPC-UA: added quantity-based batch equipment to the simulator, and carried a schema migration through the five services that share one models package.",
+            "Publishing platform (four apps behind one Cognito sign-in): passkey registration, listing and removal in the shared auth library and the ID service, with API tests.",
+            "Subscription billing on Stripe and PayPal, and an aptitude-test app backend: see Selected systems.",
+          ],
+          technologies: ["Python", "Django", "Java", "OPC-UA", "Nuxt", "Next.js", "AWS Cognito"],
+        },
       ],
     },
     {
-      period: "07/2025 — 03/2026",
-      title: "Backend Developer — Social App",
-      company: "DiproTech",
-      summary: "Newsfeed and content distribution, team of 10.",
-      highlights: [
-        "Owned the newsfeed backend; designed the seed-based ranking it runs on.",
-        "Built the CI/CD and ECS deploy path the team ships through.",
-      ],
-      technologies: ["Node.js", "TypeScript", "PostgreSQL", "Redis", "AWS ECS", "GitHub Actions"],
-    },
-    {
-      period: "01/2025 — 06/2025",
-      title: "Backend Developer — PaymentShield",
       company: "Devtify Technologies",
-      summary: "Auto loan service between lenders, dealers and customers, team of 7.",
-      highlights: [
-        "Started the codebase: NestJS, Docker, PostgreSQL, layered by responsibility.",
-        "Webhooks publish to SQS and Lambda consumes them, so a slow downstream cannot block the callback.",
-        "Failed jobs retry with backoff and land in a DLQ instead of disappearing.",
+      title: "Backend Developer",
+      period: "04/2022 — 06/2025",
+      projects: [
+        {
+          name: "PaymentShield",
+          period: "01/2025 — 06/2025",
+          summary: "Auto loan service between lenders, dealers and customers, team of 7.",
+          highlights: [
+            "Started the codebase: NestJS, Docker, PostgreSQL, layered by responsibility.",
+            "Webhooks publish to SQS and Lambda consumes them, so a slow downstream cannot block the callback.",
+            "Failed jobs retry with backoff and land in a DLQ instead of disappearing.",
+          ],
+          technologies: ["NestJS", "TypeScript", "PostgreSQL", "AWS Lambda", "AWS SQS", "BullMQ", "Redis"],
+        },
+        {
+          name: "ROUTINE",
+          period: "01/2024 — 03/2025",
+          summary: "Orders, inventory and refunds unified across Shopee, Lazada and TikTok Shop, team of 10.",
+          highlights: [
+            "One order model over three marketplaces, each with its own API shape and failure modes.",
+            "Kept stock and finance in step with the NaviWorld ERP.",
+            "Integrated three payment gateways and three shipping providers.",
+          ],
+          technologies: ["NestJS", "TypeScript", "PostgreSQL", "Redis", "Elasticsearch", "BullMQ", "Shopee API", "TikTok Shop API", "Lazada API"],
+        },
+        {
+          name: "BEAUTYBOX / THEFACESHOP / REEBOK",
+          period: "04/2022 — 11/2023",
+          summary: "Retail digital transformation for HSVGroup, team of 15.",
+          highlights: ["Designed the database and REST API."],
+          technologies: ["NestJS", "TypeScript", "PostgreSQL", "Redis", "AWS EC2", "Docker"],
+        },
       ],
-      technologies: ["NestJS", "TypeScript", "PostgreSQL", "AWS Lambda", "AWS SQS", "BullMQ", "Redis"],
     },
     {
-      period: "01/2024 — 03/2025",
-      title: "Backend Developer — ROUTINE",
-      company: "Devtify Technologies",
-      summary: "Orders, inventory and refunds unified across Shopee, Lazada and TikTok Shop, team of 10.",
-      highlights: [
-        "One order model over three marketplaces, each with its own API shape and failure modes.",
-        "Kept stock and finance in step with the NaviWorld ERP.",
-        "Integrated three payment gateways and three shipping providers.",
-      ],
-      technologies: ["NestJS", "TypeScript", "PostgreSQL", "Redis", "Elasticsearch", "BullMQ", "Shopee API", "TikTok Shop API", "Lazada API"],
-    },
-    {
-      period: "04/2022 — 11/2023",
-      title: "Backend Developer — BEAUTYBOX / THEFACESHOP / REEBOK",
-      company: "Devtify Technologies",
-      summary: "Retail digital transformation for HSVGroup, team of 15.",
-      highlights: ["Designed the database and REST API; unified order processing across three marketplaces."],
-      technologies: ["NestJS", "TypeScript", "PostgreSQL", "Redis", "AWS EC2", "Docker"],
-    },
-    {
-      period: "01/2020 — 01/2022",
-      title: "Military Service",
       company: "Vietnam People's Army",
+      title: "Military Service",
+      period: "01/2020 — 01/2022",
       summary: "Completed compulsory military service.",
-      highlights: [],
-      technologies: [],
+      projects: [],
     },
     {
-      period: "03/2019 — 12/2019",
-      title: "Backend Developer — SunWorld B2B Ticket",
       company: "D-SOFT JSC",
-      summary: "Ticket selection, online payment and e-ticket storage, team of 7.",
-      highlights: ["Designed and built the REST API on PHP / Laravel / SQL Server."],
-      technologies: ["PHP", "Laravel", "SQL Server"],
+      title: "Backend Developer",
+      period: "03/2019 — 12/2019",
+      projects: [
+        {
+          name: "SunWorld B2B Ticket",
+          summary: "Ticket selection, online payment and e-ticket storage, team of 7.",
+          highlights: ["Designed and built the REST API on PHP / Laravel / SQL Server."],
+          technologies: ["PHP", "Laravel", "SQL Server"],
+        },
+      ],
     },
   ],
   skills: [
     {
-      category: "Languages",
-      items: ["TypeScript", "JavaScript", "PHP", "Python", "Ruby"],
+      category: "Programming languages",
+      items: ["TypeScript", "JavaScript", "Python", "PHP", "Ruby"],
     },
     {
       category: "Backend Frameworks",
-      items: ["NestJS", "Node.js", "Express", "Laravel", "Ruby on Rails", "Django", "FastAPI"],
+      items: ["NestJS", "Express", "Laravel", "Ruby on Rails", "Django", "FastAPI"],
     },
     {
       category: "Databases & Search",
-      items: ["PostgreSQL", "Redis", "Elasticsearch", "SQL Server"],
+      items: ["PostgreSQL", "Redis", "Elasticsearch", "SQL Server", "Firestore"],
     },
     {
-      category: "E-commerce Platforms",
-      items: [
-        "Shopee Open API v2",
-        "TikTok Shop API v2",
-        "Lazada Open Platform",
-        "GHN / Ahamove / TikiNOW",
-      ],
+      category: "Queues & Background Jobs",
+      items: ["BullMQ", "AWS SQS + DLQ", "Sidekiq"],
     },
     {
       category: "Cloud & DevOps",
       items: [
-        "AWS EC2 / S3 / ECS",
-        "AWS Lambda / SQS",
+        "AWS EC2 / S3 / ECS / ECR / Lambda / Cognito",
+        "Cloudflare Workers / R2 / D1",
         "Docker",
         "GitHub Actions",
         "GitLab CI",
@@ -196,8 +214,8 @@ export const profile: ProfileData = {
       ],
     },
     {
-      category: "Message Queues & Workers",
-      items: ["BullMQ", "Redis Queue", "AWS SQS + DLQ"],
+      category: "Testing",
+      items: ["RSpec", "Vitest", "pytest", "Golden-vector regression tests"],
     },
     {
       category: "Payment Integrations",
@@ -212,19 +230,20 @@ export const profile: ProfileData = {
         "Invoicing & consumption tax (適格請求書)",
       ],
     },
+    {
+      category: "E-commerce Marketplaces",
+      items: ["Shopee Open API v2", "TikTok Shop API v2", "Lazada Open Platform"],
+    },
+    {
+      category: "Shipping & ERP",
+      items: ["GHN", "Ahamove", "TikiNOW", "NaviWorld ERP"],
+    },
+    {
+      category: "Frontend",
+      items: ["React", "Next.js", "Nuxt"],
+    },
   ],
   systems: [
-    {
-      name: "Multi-environment deploy pipeline",
-      domain: "Backend infrastructure",
-      summary: "Dev / staging / production deploy path for a four-service product, designed and built end to end.",
-      highlights: [
-        "One workflow per environment; production takes a service argument so you deploy one service, not all four.",
-        "Images built with Buildx layer cache, tagged by commit SHA, pushed to ECR.",
-        "Deploy registers a new ECS task definition, updates the service, and waits for it to stabilise.",
-      ],
-      technologies: ["GitHub Actions", "Docker Buildx", "AWS ECR", "AWS ECS", "ALB", "Docker Compose"],
-    },
     {
       name: "BattleCatsLab",
       domain: "Personal project · public",
@@ -238,28 +257,8 @@ export const profile: ProfileData = {
       technologies: ["TypeScript", "React", "Vite", "SQLite", "Cloudflare Workers", "Cloudflare R2", "SSE"],
     },
     {
-      name: "Virtual factory / production scheduling",
-      domain: "Manufacturing simulation · client project",
-      summary: "Django platform simulating a factory floor — scheduling, facility state, dispatching — bridged to real equipment over OPC-UA.",
-      highlights: [
-        "Five services share one models package: any schema change ripples through all of them.",
-        "Traced the DB → data-creator → environment path and reported where the schema had already drifted apart.",
-      ],
-      technologies: ["Python", "Django", "PostgreSQL", "Redis", "Docker Compose", "OPC-UA", "Java"],
-    },
-    {
-      name: "Publishing platform (portal + identity)",
-      domain: "Content platform · client project",
-      summary: "Four applications behind one account, sharing a single auth package.",
-      highlights: [
-        "Next.js and Nuxt apps hold the same auth contract — keeping that contract stable is the whole constraint.",
-        "Single sign-on on Cognito, wrapped so no app talks to Cognito directly.",
-      ],
-      technologies: ["Next.js", "Nuxt", "TypeScript", "AWS Cognito", "AWS SES", "Algolia", "Bugsnag"],
-    },
-    {
       name: "Subscription billing on Stripe and PayPal",
-      domain: "Recurring payments · client project",
+      domain: "Recurring payments · DiproTech client",
       summary: "Rails subscription platform for a Japanese publisher: plan upgrades, webhook settlement and tax-compliant receipts, across two payment providers at once.",
       highlights: [
         "Stripe signs the raw body, so the HMAC verifies locally; PayPal needs an OAuth2 token and a call back to verify-webhook-signature — verification itself is a network hop that can fail.",
@@ -280,7 +279,7 @@ export const profile: ProfileData = {
     },
     {
       name: "Aptitude-test study app (backend)",
-      domain: "EdTech · client project",
+      domain: "EdTech · DiproTech client",
       summary: "FastAPI service on Firestore: question bank, topic taxonomy, per-user progress.",
       highlights: [
         "Rapid mark-difficult / mark-unlearned calls overwrote each other's stats — a write race, not a slow query.",

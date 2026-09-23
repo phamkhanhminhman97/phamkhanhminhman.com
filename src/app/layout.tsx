@@ -93,7 +93,7 @@ const personJsonLd = {
     addressLocality: "Đà Nẵng",
     addressCountry: "VN",
   },
-  sameAs: [profile.github, "https://www.npmjs.com/~phamkhanhminhman97"],
+  sameAs: [profile.github, profile.linkedin, "https://www.npmjs.com/~phamkhanhminhman97"],
   alumniOf: profile.education.map((e) => ({
     "@type": "CollegeOrUniversity",
     name: e.school,

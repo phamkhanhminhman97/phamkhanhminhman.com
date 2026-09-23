@@ -22,7 +22,7 @@ export const copy = {
     heroAlt: "Pixel-art illustration of a developer workspace",
     avatarAlt: "Portrait of Phạm Khánh Minh Mẫn",
     intro: [
-      "Backend engineer, 5 years on e-commerce systems and multi-marketplace API integration.",
+      "Backend engineer, 5+ years on e-commerce systems and multi-marketplace API integration.",
       "I write and maintain open-source clients for the Shopee, TikTok Shop and Lazada Open APIs — request signing, token refresh, webhooks.",
       "Currently at DiproTech on manufacturing simulation, subscription billing and content platforms for Japanese clients. Since 2026, a graduate student in Computer Science at Danang University of Science and Technology.",
     ],
@@ -71,7 +71,7 @@ export const copy = {
     breadcrumb: `${SITE_DOMAIN} / about`,
     sectionAbout: "About",
     sectionResearch: "Research",
-    sectionSystems: "Systems",
+    sectionSystems: "Selected systems",
     sectionExperience: "Experience",
     sectionEducation: "Education",
     sectionSkills: "Skills",
@@ -79,7 +79,7 @@ export const copy = {
       "Client names are withheld where the work is under contract; the public project links out.",
     cv: "Curriculum Vitae",
     cvBody:
-      "Full work history, selected systems, open-source packages and skills, on three A4 pages.",
+      "Work history, selected systems, open-source packages, skills, education and research, on two A4 pages.",
     cvButton: "Download CV (PDF)",
     quickLinks: "Quick Links",
     contactBlurb:

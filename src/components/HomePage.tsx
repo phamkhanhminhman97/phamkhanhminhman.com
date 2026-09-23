@@ -45,6 +45,7 @@ import {
   ChevronRight,
   Send,
 } from "lucide-react";
+import { LinkedinIcon } from "@/components/BrandIcons";
 
 // Custom GitHub SVG Icon to replace removed lucide brand icon
 const GithubIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
@@ -614,7 +615,7 @@ export default function HomePage() {
             <ul className="flex flex-col gap-3 font-mono text-xs text-zinc-700">
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-zinc-500 shrink-0" />
-                <span>phamkhanhminhman97@gmail.com</span>
+                <span>{profile.email}</span>
               </li>
               <li className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-zinc-500 shrink-0" />
@@ -623,12 +624,23 @@ export default function HomePage() {
               <li className="flex items-center gap-2">
                 <GithubIcon className="w-4 h-4 text-zinc-500 shrink-0" />
                 <a
-                  href="https://github.com/phamkhanhminhman97"
+                  href={profile.github}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-black"
                 >
-                  github.com/phamkhanhminhman97
+                  {profile.github.replace(/^https?:\/\//, "")}
+                </a>
+              </li>
+              <li className="flex items-center gap-2">
+                <LinkedinIcon className="w-4 h-4 text-zinc-500 shrink-0" />
+                <a
+                  href={profile.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-black"
+                >
+                  {profile.linkedin.replace(/^https?:\/\/(www\.)?/, "")}
                 </a>
               </li>
             </ul>
