@@ -10,6 +10,7 @@ import { hiddenSlugs } from "@/lib/post-visibility";
 import { copy } from "@/content/copy";
 import { SITE_DOMAIN } from "@/lib/site";
 import { Mascot } from "page-mascot";
+import { AntigravityCanvas, usePrefersReducedMotion } from "@/components/AntigravityCanvas";
 import {
   fetchNpmStats,
   totalDownloads,
@@ -44,6 +45,8 @@ import {
   Layers,
   ChevronRight,
   Send,
+  Pause,
+  Play,
 } from "lucide-react";
 import { LinkedinIcon } from "@/components/BrandIcons";
 
@@ -73,6 +76,9 @@ export default function HomePage() {
 
   /** Gửi bằng fetch để người dùng ở lại trang, thay vì bị đá sang trang cảm ơn. */
   const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  /** Nút dừng hạt trôi ở header. Người bật "giảm chuyển động" không thấy nút, vì hạt vốn đã đứng yên. */
+  const [motionPaused, setMotionPaused] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
 
   const onSubmitContact = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -220,12 +226,21 @@ export default function HomePage() {
     <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
 
       {/* HEADER SECTION */}
-      <header className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6">
+      {/* Không overflow-hidden: canvas đã tự nằm gọn trong header (absolute inset-0),
+          còn cú nảy khi boop red panda phình lên trên vài px, cắt đi là mất đỉnh đầu. */}
+      <header className="relative flex flex-col md:flex-row items-center justify-between gap-6 pb-6">
+        {/* Hạt trôi sau header, chỉ từ md trở lên: trên điện thoại header xếp dọc
+            cao gần 400px, hạt sẽ trôi ngang qua chữ ngày giờ và thời tiết.
+            Mask làm hạt nhạt dần về bên phải để không đè lên khối đồng hồ. */}
+        <AntigravityCanvas
+          paused={motionPaused}
+          className="hidden md:block [mask-image:linear-gradient(to_right,black_62%,transparent_80%)]"
+        />
 
         {/* LOGO */}
         <div
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="cursor-pointer border-2 border-black p-4 inline-flex flex-col items-center justify-center font-mono font-black tracking-widest text-xl leading-none bg-white hover:bg-black hover:text-white transition-colors duration-300"
+          className="relative z-10 cursor-pointer border-2 border-black p-4 inline-flex flex-col items-center justify-center font-mono font-black tracking-widest text-xl leading-none bg-white hover:bg-black hover:text-white transition-colors duration-300 shadow-sm"
         >
           {/* Dòng dưới là tên miền THẬT, đọc từ `SITE_DOMAIN`.
 
@@ -251,15 +266,17 @@ export default function HomePage() {
             Hai tấm sheet nằm ở `public/mascots`: mỗi tấm là lưới 3×3 —
             chín hướng đầu và chín biểu cảm. Component chỉ đổi
             `background-position`, không kéo theo thư viện animation nào. */}
-        <Mascot
-          directions="/mascots/redpanda-directions.webp"
-          reactions="/mascots/redpanda-reactions.webp"
-          size={120}
-          label="red panda"
-        />
+        <div className="relative z-10">
+          <Mascot
+            directions="/mascots/redpanda-directions.webp"
+            reactions="/mascots/redpanda-reactions.webp"
+            size={120}
+            label="red panda"
+          />
+        </div>
 
         {/* TIME & WEATHER WIDGET */}
-        <div className="flex flex-col items-center md:items-end text-center md:text-right font-mono text-xs text-zinc-600">
+        <div className="relative z-10 flex flex-col items-center md:items-end text-center md:text-right font-mono text-xs text-zinc-600">
           <div className="flex items-center gap-1.5 text-zinc-800 font-bold mb-1">
             <Calendar className="w-3.5 h-3.5" />
             <span>{dateStr || "Saturday, May 23, 2026"}</span>
@@ -279,6 +296,17 @@ export default function HomePage() {
                 : ""}
             </span>
           </div>
+
+          {!reducedMotion && (
+            <button
+              type="button"
+              onClick={() => setMotionPaused((p) => !p)}
+              className="hidden md:inline-flex items-center gap-1 mt-2 text-[10px] text-zinc-400 hover:text-black transition-colors cursor-pointer"
+            >
+              {motionPaused ? <Play className="w-3 h-3" aria-hidden /> : <Pause className="w-3 h-3" aria-hidden />}
+              <span>{motionPaused ? t.motionPlay : t.motionPause}</span>
+            </button>
+          )}
         </div>
       </header>
 

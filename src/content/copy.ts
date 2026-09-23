@@ -52,6 +52,9 @@ export const copy = {
     viewOnNpm: "View on npm →",
     updatesLoading: "Loading from npm…",
     details: "Details →",
+    /** Nút nhỏ dưới đồng hồ, dừng hoặc chạy lại lớp hạt trôi sau header. */
+    motionPause: "Pause animation",
+    motionPlay: "Play animation",
   },
   about: {
     /**
