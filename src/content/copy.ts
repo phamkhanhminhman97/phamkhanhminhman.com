@@ -76,7 +76,7 @@ export const copy = {
     sectionEducation: "Education",
     sectionSkills: "Skills",
     systemsNote:
-      "Client names are withheld where the work is under contract; the public project links out.",
+      "Built outside client work; public and linked.",
     cv: "Curriculum Vitae",
     cvBody:
       "Work history, selected systems, open-source packages, skills, education and research, on two A4 pages.",

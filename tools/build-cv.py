@@ -318,7 +318,7 @@ def build() -> None:
             # Tên công ty dính với dự án đầu tiên, không nằm trơ ở đáy trang.
             story += entry((top if j == 0 else []) + ph, pr["highlights"], pr["technologies"])
 
-    # Hệ thống: sau Kinh nghiệm, vì dòng "see Selected systems" ở trên trỏ xuống đây
+    # Hệ thống: dự án cá nhân công khai, đặt sau Kinh nghiệm
     story += section("Selected systems")
     for i, s in enumerate(p["systems"]):
         name = f"<b>{clean(s['name'])}</b>"
