@@ -15,21 +15,21 @@ export const copy = {
   },
   home: {
     metaTitle:
-      "Phạm Khánh Minh Mẫn — Backend Engineer & LLM-Agent Memory Research",
+      "Phạm Khánh Minh Mẫn — Backend Engineer & Master's Student",
     metaDescription:
-      "Backend engineer (NestJS, PostgreSQL, Redis, AWS) with 5+ years in e-commerce, author of the open-source Shopee / TikTok Shop / Lazada API clients. Graduate researcher on graph memory for LLM agents at Danang University of Science and Technology.",
-    kicker: "API INTEGRATION • E-COMMERCE AUTOMATION • APPLIED AI RESEARCH",
+      "Backend engineer (NestJS, PostgreSQL, Redis, AWS) with 5+ years in e-commerce, author of the open-source Shopee / TikTok Shop / Lazada API clients. Since 2026, a Master's student in Computer Science at Danang University of Science and Technology, exploring memory for LLM agents.",
+    kicker: "API INTEGRATION • E-COMMERCE AUTOMATION • LLM-AGENT MEMORY",
     heroAlt: "Pixel-art illustration of a developer workspace",
     avatarAlt: "Portrait of Phạm Khánh Minh Mẫn",
     intro: [
       "Backend engineer, 5+ years on e-commerce systems and multi-marketplace API integration.",
       "I write and maintain open-source clients for the Shopee, TikTok Shop and Lazada Open APIs — request signing, token refresh, webhooks.",
-      "Currently at DiproTech on manufacturing simulation, subscription billing and content platforms for Japanese clients. Since 2026, a graduate student in Computer Science at Danang University of Science and Technology.",
+      "Currently at DiproTech on manufacturing simulation, subscription billing and content platforms for Japanese clients. Since 2026, a Master's student in Computer Science at Danang University of Science and Technology.",
     ],
     sectionPackages: "REPRESENTATIVE LIBRARIES & PACKAGES",
     sectionPackagesNote: "[ Last week stats from npmjs.org ]",
-    sectionResearch: "RESEARCH — GRADUATE WORK",
-    sectionResearchNote: "[ In progress ]",
+    sectionResearch: "INDEPENDENT RESEARCH",
+    sectionResearchNote: "[ Exploratory · no published results ]",
     sectionBlog: "TECHNICAL ARTICLES & GUIDES",
     sectionBlogNote: "[ Notes from production systems ]",
     fullMethod: "Full method & status →",
@@ -70,7 +70,7 @@ export const copy = {
      */
     metaTitle: "Phạm Khánh Minh Mẫn (Pham Khanh Minh Man) — CV, Backend Engineer",
     metaDescription:
-      "Curriculum vitae of Phạm Khánh Minh Mẫn — backend engineer (NestJS, PostgreSQL, Redis, AWS) and graduate researcher on graph memory for LLM agents.",
+      "Curriculum vitae of Phạm Khánh Minh Mẫn — backend engineer (NestJS, PostgreSQL, Redis, AWS) and, since 2026, a Master's student in Computer Science at Danang University of Science and Technology.",
     breadcrumb: `${SITE_DOMAIN} / about`,
     sectionAbout: "About",
     sectionResearch: "Research",

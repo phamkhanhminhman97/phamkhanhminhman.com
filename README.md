@@ -17,7 +17,7 @@ Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh 
 - **🎨 Hình ảnh AI Độc quyền:** Ảnh minh họa bàn làm việc dạng pixel-art và avatar cá nhân phong cách 8-bit từ AI.
 - **🌐 Song ngữ, mặc định tiếng Anh:** `/` là **English**, `/vi` là tiếng Việt, có công tắc `EN / VI` ở header. Kèm `hreflang` + `x-default` trong `<head>` và trong `sitemap.xml`.
 - **🖥️ Systems Section:** ba hệ thống đang làm, mô tả **kỹ thuật, ẩn danh khách hàng** (`profile.systems`).
-- **🔬 Research Section:** Mục nghiên cứu sau đại học (câu hỏi · phương pháp · trạng thái trung thực · từ khoá) trên cả trang chủ và trang About.
+- **🔬 Research Section:** Mục nghiên cứu độc lập (câu hỏi · phương pháp · trạng thái trung thực · từ khoá) trên cả trang chủ và trang About. Việc học ghi là "Master's student" (học viên cao học), không dùng "graduate researcher" vì Google dịch ra "nghiên cứu sinh".
 - **📬 Form liên hệ không Backend:** Web3Forms qua biến môi trường; chưa cấu hình thì tự rơi về `mailto:`.
 - **🔎 SEO nâng cao:** `metadataBase`, OpenGraph, Twitter Card, title template, và **JSON-LD `Person` schema** (quyết định Google hiển thị ra sao khi ai đó gõ đúng tên).
 - **♿ Skip-link** tới `<main id="main">` cho người dùng bàn phím.

@@ -14,9 +14,16 @@ const lora = Lora({
   subsets: ["latin", "vietnamese"],
 });
 
-const TITLE = "Phạm Khánh Minh Mẫn — Backend Engineer & LLM-Agent Memory Research";
+/*
+ * Cách gọi việc học phải là "Master's student", không phải "graduate
+ * researcher" hay "graduate student". Google (và AI tóm tắt của nó) dịch mô tả
+ * này sang tiếng Việt cho người tìm bằng tiếng Việt; "graduate researcher" ra
+ * "nghiên cứu sinh", tức người làm TIẾN SĨ, trong khi đây là học viên cao học.
+ * "Master's student" chỉ có một cách dịch: học viên cao học / học viên thạc sĩ.
+ */
+const TITLE = "Phạm Khánh Minh Mẫn — Backend Engineer & Master's Student";
 const DESCRIPTION =
-  "Backend engineer (NestJS, PostgreSQL, Redis, AWS) with 5+ years in e-commerce, author of the open-source Shopee / TikTok Shop / Lazada API clients. Graduate researcher on graph memory for LLM agents at Danang University of Science and Technology.";
+  "Backend engineer (NestJS, PostgreSQL, Redis, AWS) with 5+ years in e-commerce, author of the open-source Shopee / TikTok Shop / Lazada API clients. Since 2026, a Master's student in Computer Science at Danang University of Science and Technology, exploring memory for LLM agents.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -84,7 +91,9 @@ const personJsonLd = {
   alternateName: profile.alternateNames,
   url: SITE_URL,
   email: `mailto:${profile.email}`,
-  jobTitle: profile.title,
+  // Chức danh là NGHỀ, không kèm hướng nghiên cứu: "... Research" trong
+  // jobTitle khiến Google coi người này làm nghề nghiên cứu.
+  jobTitle: "Backend Engineer",
   description: DESCRIPTION,
   nationality: { "@type": "Country", name: "Vietnam" },
   worksFor: { "@type": "Organization", name: "DiproTech" },
@@ -94,10 +103,14 @@ const personJsonLd = {
     addressCountry: "VN",
   },
   sameAs: [profile.github, profile.linkedin, "https://www.npmjs.com/~phamkhanhminhman97"],
-  alumniOf: profile.education.map((e) => ({
-    "@type": "CollegeOrUniversity",
-    name: e.school,
-  })),
+  // alumniOf nghĩa là ĐÃ tốt nghiệp: chỉ ghi bằng đã xong. Trường đang học ghi
+  // ở affiliation, để Google không nói người này đã có bằng thạc sĩ.
+  alumniOf: profile.education
+    .filter((e) => !e.period.includes("present"))
+    .map((e) => ({ "@type": "CollegeOrUniversity", name: e.school })),
+  affiliation: profile.education
+    .filter((e) => e.period.includes("present"))
+    .map((e) => ({ "@type": "CollegeOrUniversity", name: e.school })),
   knowsAbout: [
     ...profile.skills.flatMap((s) => s.items),
     ...profile.research.flatMap((r) => r.keywords),

@@ -90,14 +90,14 @@ export interface ProfileData {
 export const profile: ProfileData = {
   name: "Phạm Khánh Minh Mẫn",
   alternateNames: ["Pham Khanh Minh Man", "PKMM"],
-  title: "Backend Engineer · E-commerce API Integration · LLM-Agent Memory Research",
+  title: "Backend Engineer · E-commerce API Integration · Master's Student in Computer Science",
   location: "Da Nang, Vietnam",
   email: "phamkhanhminhman97@gmail.com",
   github: "https://github.com/phamkhanhminhman97",
   linkedin: "https://www.linkedin.com/in/pkmm97",
   bio: [
     "Backend engineer with 5+ years in e-commerce, payments and multi-marketplace API integration, mostly in NestJS and TypeScript with event-driven work on AWS. Author of four open-source client libraries for the Shopee, TikTok Shop and Lazada Open APIs, published on npm.",
-    "Since 2026, a graduate student in Computer Science (research track) at Danang University of Science and Technology, interested in memory for LLM agents.",
+    "Since 2026, a Master's student in Computer Science (research-oriented program) at Danang University of Science and Technology, interested in memory for LLM agents.",
   ],
   experiences: [
     {
@@ -282,9 +282,9 @@ export const profile: ProfileData = {
   education: [
     {
       period: "2026 — present",
-      degree: "M.Sc. in Computer Science",
+      degree: "Master of Science (M.Sc.) in Computer Science, in progress",
       school: "Danang University of Science and Technology (DUT) — The University of Danang",
-      description: "Research track. Coursework in progress; thesis topic not yet decided.",
+      description: "Research-oriented Master's program. Coursework in progress; thesis topic not yet chosen.",
     },
     {
       period: "2015 — 2019",
