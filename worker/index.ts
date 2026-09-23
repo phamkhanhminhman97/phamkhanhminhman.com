@@ -257,10 +257,13 @@ async function logVisit(request: Request, env: Env, url: URL, vid: string): Prom
   await env.DB.prepare(
     `INSERT INTO visits
        (ts, ip, country, city, region, asn, path, referer, ua, bot,
-        vid, lat, lon, postal, tz, colo, proto, tls, rtt, verified_bot, lang,
-        webview)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        vid, tz, colo, proto, tls, rtt, verified_bot, lang, webview)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
+    // Không ghi toạ độ (lat/lon) và mã bưu chính dù Cloudflare có đưa: chúng
+    // không giúp phân biệt người với máy, mà chỉ làm nhật ký nhạy cảm hơn.
+    // Cột vẫn còn trong bảng cho khỏi phải migration; hàng cũ tự hết hạn
+    // sau VISIT_RETENTION_DAYS.
     .bind(
       Date.now(),
       cut(ip, 64),
@@ -273,9 +276,6 @@ async function logVisit(request: Request, env: Env, url: URL, vid: string): Prom
       cut(ua, 300),
       looksBot ? 1 : 0,
       vid,
-      cut(cf.latitude as string | undefined, 24),
-      cut(cf.longitude as string | undefined, 24),
-      cut(cf.postalCode as string | undefined, 24),
       cut(cf.timezone as string | undefined, 48),
       cut(cf.colo as string | undefined, 8),
       cut(cf.httpProtocol as string | undefined, 16),
@@ -345,12 +345,9 @@ async function handleBeacon(request: Request, env: Env): Promise<Response> {
            scroll = MAX(scroll, ?),
            screen = CASE WHEN ? != '' THEN ? ELSE screen END,
            tz_client = CASE WHEN ? != '' THEN ? ELSE tz_client END,
-           gpu = CASE WHEN ? != '' THEN ? ELSE gpu END,
            cpu = MAX(cpu, ?),
            ram = MAX(ram, ?),
            touch = MAX(touch, ?),
-           model = CASE WHEN ? != '' THEN ? ELSE model END,
-           os_version = CASE WHEN ? != '' THEN ? ELSE os_version END,
            net = CASE WHEN ? != '' THEN ? ELSE net END,
            downlink = MAX(downlink, ?),
            rtt_client = MAX(rtt_client, ?),
@@ -366,12 +363,9 @@ async function handleBeacon(request: Request, env: Env): Promise<Response> {
         num(b?.scroll, 100),
         cut(b?.screen as string, 32), cut(b?.screen as string, 32),
         cut(b?.tz as string, 48), cut(b?.tz as string, 48),
-        cut(b?.gpu as string, 96), cut(b?.gpu as string, 96),
         num(b?.cpu, 256),
         num(b?.ram, 1024),
         b?.touch ? 1 : 0,
-        cut(b?.model as string, 48), cut(b?.model as string, 48),
-        cut(b?.osv as string, 24), cut(b?.osv as string, 24),
         cut(b?.net as string, 12), cut(b?.net as string, 12),
         num(b?.downlink, 100000),
         num(b?.rttc, 100000),
@@ -545,15 +539,9 @@ async function handleVisits(env: Env, url: URL): Promise<Response> {
                 MAX(scroll)      AS scroll,
                 SUM(dwell)       AS total_dwell,
                 MAX(screen)      AS screen,
-                MAX(gpu)         AS gpu,
-                MAX(model)       AS model,
-                MAX(os_version)  AS os_version,
                 MAX(cpu)         AS cpu,
                 MAX(ram)         AS ram,
                 MAX(touch)       AS touch,
-                MAX(lat)         AS lat,
-                MAX(lon)         AS lon,
-                MAX(postal)      AS postal,
                 MAX(tz)          AS tz,
                 MAX(tz_client)   AS tz_client,
                 MAX(colo)        AS colo,
@@ -579,8 +567,8 @@ async function handleVisits(env: Env, url: URL): Promise<Response> {
       // Dòng thời gian thô, để soi đúng một phiên xem cụ thể.
       env.DB.prepare(
         `SELECT ts, ip, cid, country, city, region, asn, path, referer, ua, bot,
-                human, dwell, scroll, screen, gpu, model, os_version, cpu, ram,
-                touch, lat, lon, tz, tz_client, colo, proto, tls, rtt, lang,
+                human, dwell, scroll, screen, cpu, ram,
+                touch, tz, tz_client, colo, proto, tls, rtt, lang,
                 net, downlink, rtt_client, webview, verified_bot
             FROM visits
           WHERE ts >= ?${where}
@@ -627,15 +615,19 @@ async function handleVisits(env: Env, url: URL): Promise<Response> {
 // ---------------------------------------------------------------- áp lên HTML
 
 /**
- * Đoạn script nhúng vào mỗi trang để trình duyệt tự khai thông tin máy và báo
- * lại có người thật hay không.
+ * Đoạn script nhúng vào mỗi trang để báo lại có người thật hay không.
  *
  * Viết tay, nén sẵn, chưa tới 1KB và chạy sau khi trang đã hiện — cố ý không
  * kéo thêm thư viện phân tích nào: một trang tĩnh nhẹ mà nhét vào 40KB script
  * đo đạc thì hỏng mất cái nhanh vốn có.
  *
+ * Cố ý KHÔNG đọc tên card đồ hoạ (WebGL) hay đời máy / phiên bản hệ điều hành
+ * (Client Hints độ chính xác cao): đó là các kỹ thuật lấy dấu vân tay trình
+ * duyệt, không cần cho việc phân biệt người với máy. Chỉ giữ những thứ thô,
+ * ít tính nhận dạng: kích thước màn hình, số nhân, RAM, có cảm ứng hay không.
+ *
  * Ba mốc gửi báo cáo:
- *   1 — ngay khi tải xong: chứng minh JavaScript chạy được, kèm thông tin máy.
+ *   1 — ngay khi tải xong: chứng minh JavaScript chạy được.
  *   2 — khi có cuộn/bấm/ở lại quá 15 giây: chứng minh có người thật.
  *   cuối — lúc rời trang: chốt lại ở lại bao lâu, đọc tới đâu.
  */
@@ -643,14 +635,13 @@ function beaconScript(vid: string): string {
   return `(function(){try{
 var V=${JSON.stringify(vid)},S=0,T=Date.now(),H=1,sent=0;
 var C=localStorage.getItem('_pk');if(!C){C=Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('_pk',C)}catch(e){}}
-function gpu(){try{var c=document.createElement('canvas'),g=c.getContext('webgl')||c.getContext('experimental-webgl');if(!g)return'';var d=g.getExtension('WEBGL_debug_renderer_info');return d?String(g.getParameter(d.UNMASKED_RENDERER_WEBGL)).slice(0,96):''}catch(e){return''}}
-function send(h,extra){if(sent>2&&h<2)return;sent++;var n=navigator.connection||{};
-var b={vid:V,cid:C,human:h,dwell:Math.round((Date.now()-T)/1000),scroll:S,screen:screen.width+'x'+screen.height+'@'+(devicePixelRatio||1),tz:(Intl.DateTimeFormat().resolvedOptions().timeZone||''),gpu:gpu(),cpu:navigator.hardwareConcurrency||0,ram:navigator.deviceMemory||0,touch:(navigator.maxTouchPoints||0)>0?1:0,model:(extra&&extra.model)||'',osv:(extra&&extra.osv)||'',net:n.effectiveType||'',downlink:Math.round((n.downlink||0)*10),rttc:n.rtt||0};
+function send(h){if(sent>2&&h<2)return;sent++;var n=navigator.connection||{};
+var b={vid:V,cid:C,human:h,dwell:Math.round((Date.now()-T)/1000),scroll:S,screen:screen.width+'x'+screen.height+'@'+(devicePixelRatio||1),tz:(Intl.DateTimeFormat().resolvedOptions().timeZone||''),cpu:navigator.hardwareConcurrency||0,ram:navigator.deviceMemory||0,touch:(navigator.maxTouchPoints||0)>0?1:0,net:n.effectiveType||'',downlink:Math.round((n.downlink||0)*10),rttc:n.rtt||0};
 // Đo độ trễ thật từ chính lượt tải trang này, không phụ thuộc navigator.connection
 // (Safari không có API đó). PerformanceNavigationTiming có sẵn ở mọi trình duyệt.
 try{var p=performance.getEntriesByType('navigation')[0];if(p&&p.responseStart&&p.requestStart){var m=Math.round(p.responseStart-p.requestStart);if(m>0&&(!b.rttc||m<b.rttc))b.rttc=m}}catch(e){}
 var s=JSON.stringify(b);if(navigator.sendBeacon){navigator.sendBeacon('/api/pulse',new Blob([s],{type:'application/json'}))}else{fetch('/api/pulse',{method:'POST',body:s,keepalive:true})}}
-function first(){var u=navigator.userAgentData;if(u&&u.getHighEntropyValues){u.getHighEntropyValues(['model','platformVersion']).then(function(v){send(1,{model:v.model||'',osv:v.platformVersion||''})}).catch(function(){send(1)})}else{send(1)}}
+function first(){send(1)}
 addEventListener('scroll',function(){var d=document.documentElement,m=d.scrollHeight-innerHeight;if(m>0){var p=Math.round(scrollY/m*100);if(p>S)S=p}H=2},{passive:true});
 addEventListener('click',function(){H=2},{passive:true});
 addEventListener('keydown',function(){H=2});

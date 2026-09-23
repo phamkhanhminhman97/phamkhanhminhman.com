@@ -27,14 +27,9 @@ interface Device {
   dwell: number;
   scroll: number;
   screen: string;
-  gpu: string;
-  model: string;
-  os_version: string;
   cpu: number;
   ram: number;
   touch: number;
-  lat: string;
-  lon: string;
   tz: string;
   tz_client: string;
   colo: string;
@@ -56,7 +51,6 @@ interface Person extends Device {
   last_ts: number;
   first_ts: number;
   total_dwell: number;
-  postal: string;
   referer: string;
   pages: number;
 }
@@ -123,11 +117,11 @@ function osOf(ua: string): string {
  * Đời máy suy từ độ phân giải chứ không từ chuỗi nhận dạng — trên iOS thì
  * chuỗi đó không nói tên máy, còn độ phân giải thì không nói dối được.
  */
-function device(d: { ua: string; screen?: string; os_version?: string; gpu?: string }): string {
+function device(d: { ua: string; screen?: string }): string {
   if (!d.ua) return "—";
   const b = browserOf(d.ua);
-  const v = osVersion(d.ua, d.os_version ?? "");
-  const model = guessModel(d.screen ?? "", d.ua, d.gpu ?? "");
+  const v = osVersion(d.ua);
+  const model = guessModel(d.screen ?? "", d.ua);
   const os = osName(d.ua);
   return [b, model || osOf(d.ua), v && os ? `${os} ${v}` : ""]
     .filter(Boolean)
@@ -154,7 +148,6 @@ function source(referer: string): string {
 function trust(d: {
   human: number;
   verified_bot: string;
-  gpu: string;
   ua?: string;
   asn?: string;
   proto?: string;
@@ -179,9 +172,7 @@ function trust(d: {
     return {
       label: "Trình duyệt thật",
       cls: "bg-sky-50 text-sky-800 border-sky-200",
-      why: d.gpu
-        ? "JavaScript chạy được và đọc ra được card đồ hoạ thật, nhưng chưa thấy tương tác."
-        : "JavaScript chạy được nhưng chưa thấy tương tác — có thể mở rồi đóng ngay.",
+      why: "JavaScript chạy được nhưng chưa thấy tương tác — có thể mở rồi đóng ngay.",
     };
 
   // Chưa có tín hiệu trình duyệt: nói rõ VÌ SAO nghi ngờ, thay vì để người
@@ -252,35 +243,11 @@ function dur(sec: number): string {
 }
 
 /**
- * Đoán đời máy từ tên chip đồ hoạ. User-Agent hiện đại giấu tên máy (mọi
- * iPhone đều khai giống nhau), nhưng WebGL thì vẫn nói ra chip — và chip thì
- * gắn chặt với đời máy.
- *
- * Trên iOS gần như vô dụng: Safari trả về đúng chuỗi "Apple GPU" cho mọi máy
- * (đã kiểm chứng trên iPhone 12 chạy iOS 27). Chỗ nó thật sự có giá trị là
- * máy tính, nơi WebGL nói thẳng "RTX 4070" hay "Apple M3 Pro" — thứ mà độ
- * phân giải màn hình không suy ra được.
- */
-function chip(gpu: string): string {
-  if (!gpu) return "";
-  const m = gpu.match(/Apple (A\d+|M\d+)/i);
-  if (m) return `Apple ${m[1].toUpperCase()}`;
-  const adreno = gpu.match(/Adreno[^)]*\)?\s*(\d+)/i);
-  if (adreno) return `Adreno ${adreno[1]}`;
-  const mali = gpu.match(/Mali-?(\w+)/i);
-  if (mali) return `Mali ${mali[1]}`;
-  const nv = gpu.match(/(RTX|GTX)\s*(\d+\s*\w*)/i);
-  if (nv) return `${nv[1].toUpperCase()} ${nv[2]}`;
-  return gpu.replace(/ANGLE \(|\)$/g, "").slice(0, 38);
-}
-
-/**
  * Đời máy suy từ độ phân giải màn hình.
  *
- * Trên iOS đây là cách DUY NHẤT còn dùng được: WebGL trả về "Apple GPU" cho
- * mọi máy, Client Hints thì Apple không hỗ trợ, còn chuỗi nhận dạng đã bị làm
- * mờ. Nhưng độ phân giải logic thì không nói dối được — nó là kích thước
- * thật của màn hình.
+ * Chuỗi nhận dạng trên iOS không nói tên máy, và beacon cố ý không đọc chip
+ * đồ hoạ hay Client Hints (xem `beaconScript` trong worker). Độ phân giải
+ * logic là manh mối thô còn lại — đủ để đoán nhóm máy, không đủ để nhận dạng.
  *
  * Không phân biệt được các máy DÙNG CHUNG một cỡ màn (iPhone 12/13/14 giống
  * hệt nhau), nên trả về cả nhóm thay vì đoán bừa một cái tên.
@@ -307,13 +274,7 @@ const SCREENS: Record<string, string> = {
   "1024x1366@2": "iPad Pro 12.9",
 };
 
-function guessModel(screen: string, ua: string, gpu = ""): string {
-  // Máy tính: chip nói chính xác hơn màn hình nhiều. Một chiếc Mac có thể cắm
-  // màn ngoài đủ kích cỡ, nhưng "Apple M4" thì chỉ có một nghĩa. Với PC cũng
-  // vậy: "RTX 4070" nói được nhiều hơn "1920x1080".
-  const chipName = macChip(gpu);
-  if (chipName) return `Mac (${chipName})`;
-
+function guessModel(screen: string, ua: string): string {
   if (screen) {
     const hit = SCREENS[screen];
     if (hit) return hit;
@@ -331,12 +292,6 @@ function guessModel(screen: string, ua: string, gpu = ""): string {
   return "";
 }
 
-/** Chip Apple Silicon từ chuỗi WebGL: "…Apple M4, Unspecified…" → "M4". */
-function macChip(gpu: string): string {
-  const m = gpu.match(/Apple (M\d+(?:\s+(?:Pro|Max|Ultra))?)/i);
-  return m ? m[1] : "";
-}
-
 /**
  * Phiên bản iOS/Android — phải đọc theo từng trình duyệt vì chúng nói dối
  * khác nhau. Trên CÙNG một chiếc iPhone 12 chạy iOS 27:
@@ -349,19 +304,15 @@ function macChip(gpu: string): string {
  * Safari cố tình giữ "18_7" để không làm hỏng các trang cũ dò phiên bản, và
  * chuyển số thật sang "Version/". Đọc bằng một quy tắc chung là sai một trong
  * hai trường hợp.
+ *
+ * Mac và Windows thì đóng băng số này ("Mac OS X 10_15_7", "Windows NT 10.0"),
+ * nên với máy tính hàm trả về rỗng thay vì một con số sai.
  */
-function osVersion(ua: string, reported: string): string {
-  // Client Hints nói thì tin — đây là nguồn đáng tin nhất, và trên máy tính
-  // là nguồn DUY NHẤT đúng: chuỗi nhận dạng của Mac đóng băng ở
-  // "Mac OS X 10_15_7" từ năm 2020 và không bao giờ đổi nữa, dù máy đang
-  // chạy macOS 27. Windows cũng vậy — Windows 11 vẫn khai "Windows NT 10.0".
-  if (reported) return reported.replace(/(\.0)+$/, ""); // "27.0.0" → "27"
+function osVersion(ua: string): string {
   const isSafari = /Version\/(\d+)/.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   if (isSafari && /iPhone|iPad/i.test(ua)) {
     const v = ua.match(/Version\/(\d+(?:\.\d+)?)/);
-    // Cắt ".0" thừa cho khớp với nhánh Client Hints ở trên: Safari khai
-    // "Version/27.0" nhưng Chrome khai "27.0.0" → cả hai phải ra "27", không
-    // thì cùng một máy lại hiện hai kiểu tuỳ trình duyệt.
+    // Cắt ".0" thừa: "Version/27.0" → "27", cho khớp cách hiện ở chỗ khác.
     if (v) return v[1].replace(/(\.0)+$/, "");
   }
   const os = ua.match(/(?:iPhone )?OS (\d+)[._](\d+)/);
@@ -779,17 +730,6 @@ export default function VisitorsPage() {
                         hint="Lưu trong trình duyệt, nhận ra cùng một máy kể cả khi IP đổi"
                       />
                       <Field k="Số IP đã dùng" v={p.ips > 1 ? `${p.ips} (IP động)` : "1"} />
-                      <Field
-                        k="Toạ độ"
-                        v={p.lat && p.lon ? `${p.lat}, ${p.lon}` : "—"}
-                        link={
-                          p.lat && p.lon
-                            ? `https://www.google.com/maps?q=${p.lat},${p.lon}`
-                            : undefined
-                        }
-                        hint="Vị trí trạm mạng, không phải chỗ người đó ngồi"
-                      />
-                      <Field k="Mã bưu chính" v={p.postal || "—"} />
                       <Field k="Múi giờ (IP)" v={p.tz || "—"} />
                       <Field k="Múi giờ (máy)" v={p.tz_client || "—"} />
                       <Field k="Ngôn ngữ" v={p.lang || "—"} />
@@ -818,24 +758,18 @@ export default function VisitorsPage() {
                       />
                       <Field k="Màn hình" v={p.screen || "—"} />
                       <Field
-                        k="Card đồ hoạ"
-                        v={p.gpu ? (chip(p.gpu) !== p.gpu ? `${chip(p.gpu)} — ${p.gpu}` : p.gpu) : "—"}
-                        hint="Trên iPhone luôn là 'Apple GPU' chung chung; trên máy tính thì nói rõ tên card"
-                        wide
-                      />
-                      <Field
                         k="Đời máy"
-                        v={p.model || guessModel(p.screen, p.ua, p.gpu) || "—"}
-                        hint="Máy tính suy từ chip đồ hoạ, điện thoại suy từ độ phân giải — chuỗi nhận dạng không nói tên máy"
+                        v={guessModel(p.screen, p.ua) || "—"}
+                        hint="Đoán thô từ độ phân giải màn hình — chuỗi nhận dạng không nói tên máy"
                       />
                       <Field
                         k="Hệ điều hành"
                         v={
-                          osVersion(p.ua, p.os_version)
-                            ? `${osName(p.ua)} ${osVersion(p.ua, p.os_version)}`
+                          osVersion(p.ua)
+                            ? `${osName(p.ua)} ${osVersion(p.ua)}`
                             : osName(p.ua) || "—"
                         }
-                        hint="Mac và Windows đóng băng số này trong chuỗi nhận dạng (Mac luôn khai 10.15.7), nên ưu tiên số do trình duyệt tự khai"
+                        hint="Mac và Windows đóng băng số phiên bản trong chuỗi nhận dạng, nên máy tính chỉ hiện tên hệ điều hành"
                       />
                       <Field
                         k="Trình duyệt"

@@ -123,6 +123,10 @@ export const copy = {
   footer: {
     rights: "All rights reserved.",
     built: "Editorial-academic design. Hosted on Cloudflare.",
+    // Phải khớp đúng những gì worker/index.ts (logVisit + beaconScript) còn
+    // ghi. Đổi cột nào trong nhật ký lượt xem thì sửa luôn câu này.
+    privacy:
+      "Privacy: a 90-day visit log (IP, city-level location, network provider, browser, and basic device info like screen size) is kept only to tell people from bots, plus a random ID in localStorage. No tracking cookies, no third-party analytics. The contact form is delivered via Web3Forms.",
   },
   weather: {
     error: "Failed to load weather:",

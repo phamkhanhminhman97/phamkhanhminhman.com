@@ -429,6 +429,9 @@ export default function AboutPage() {
       {/* ── FOOTER ── */}
       <footer className="editorial-border-double mt-12 py-6 text-center font-mono text-[10px] text-zinc-500">
         <div>&copy; {new Date().getFullYear()} {SITE_DOMAIN}. All rights reserved.</div>
+        <p className="mx-auto mt-3 max-w-2xl px-4 leading-relaxed">
+          {d.footer.privacy}
+        </p>
       </footer>
     </div>
   );
