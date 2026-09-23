@@ -79,8 +79,8 @@ export const copy = {
       "Client names are withheld where the work is under contract; the public project links out.",
     cv: "Curriculum Vitae",
     cvBody:
-      "A downloadable CV with the full work history and skill breakdown is coming.",
-    cvButton: "Download CV (PDF) — coming soon",
+      "Full work history, selected systems, open-source packages and skills, on three A4 pages.",
+    cvButton: "Download CV (PDF)",
     quickLinks: "Quick Links",
     contactBlurb:
       "Always happy to discuss e-commerce integration work, automation, or open-source collaboration.",

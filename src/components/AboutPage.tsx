@@ -382,13 +382,14 @@ export default function AboutPage() {
             <p className="font-serif-body text-[11.5px] text-zinc-600 leading-relaxed mb-3">
               {t.cvBody}
             </p>
-            <button
-              disabled
-              className="inline-block bg-zinc-100 text-zinc-400 font-mono text-[10px] font-bold px-3 py-1.5 rounded cursor-not-allowed text-center w-full"
-              title="Coming soon"
+            {/* File tạo bởi tools/build-cv.py từ chính src/data/profile.tsx */}
+            <a
+              href="/cv/Pham-Khanh-Minh-Man-CV.pdf"
+              download
+              className="inline-block bg-black text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded hover:bg-zinc-800 transition-colors uppercase text-center w-full"
             >
               {t.cvButton}
-            </button>
+            </a>
           </section>
 
           {/* NAVIGATION BACK TO MAIN SECTIONS */}
