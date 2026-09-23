@@ -374,8 +374,8 @@ là máy quét.
 
 ### Ghi gì, không ghi gì
 
-Footer của site có một dòng công khai đúng những gì được ghi (`copy.footer.privacy`). Câu đó
-và code phải khớp nhau: đổi cột nào ở đây thì sửa luôn câu kia.
+Footer hiện không còn dòng công khai về nhật ký lượt xem (đã gỡ theo yêu cầu). Nếu sau này
+thêm lại thì câu đó phải khớp đúng bảng dưới đây.
 
 | Ghi | Không ghi (đã gỡ) |
 | --- | --- |

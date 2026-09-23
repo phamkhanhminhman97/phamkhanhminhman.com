@@ -872,9 +872,6 @@ export default function HomePage() {
               sai trên trang của chính người làm backend thì tự phản lại mình. */}
           Designed with editorial-academic style. Hosted on Cloudflare Workers.
         </div>
-        <p className="mx-auto mt-3 max-w-2xl px-4 leading-relaxed">
-          {d.footer.privacy}
-        </p>
       </footer>
 
     </div>
