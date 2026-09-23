@@ -43,17 +43,18 @@ export const npmPackages: NpmPackageInfo[] = [
     npmName: "shopee-api-client",
     tag: "API Client",
     description:
-      "TypeScript client for Shopee Open API v2. Covers seller authorization, token management, orders, products, logistics, and payment escrow.",
+      "TypeScript client for Shopee Open API v2: 446 endpoints across 30 API domains, with typed errors, timeouts and safe retries.",
     longDescription:
-      "shopee-api-client is a TypeScript library for Shopee Open API v2. It handles the whole OAuth flow: building the authorization link, exchanging the code for an access token, and refreshing the token before it expires. It covers order APIs (getOrders, getOrderDetail, cancelOrder), products (getCategory, getAttributes, getBrandList, updatePrice, updateStock), logistics (shipOrder, getTrackingNumber, createShippingDocument, massShipOrder), payment (getEscrowDetail), and signature checking for Shopee push notification webhooks.",
+      "shopee-api-client is a TypeScript library for Shopee Open API v2, covering all 30 domains of the reference shopee-sdk (446 endpoints). It handles the whole OAuth flow, signs every request, and verifies push-notification webhooks. The six core domains (orders, products, logistics, payment, returns, push) are flat methods on ShopeeModule; the other domains live under typed namespaces such as shopee.ads and shopee.voucher, so no new method collides with an existing name. Every failure surfaces as a ShopeeApiError, every call has a 30-second timeout, and GET requests retry transient errors while POST never does. 147 unit tests.",
     features: [
-      "OAuth 2.0: generateAuthLink, fetchTokenWithAuthCode, fetchTokenWithRefreshToken",
-      "Orders: getOrders (auto-pagination), getOrderList, getOrderDetail, cancelOrder, searchPackageList",
-      "Products: getCategory, getAttributes, getBrandList, addItem, updatePrice, updateStock, unListItem",
-      "Logistics: shipOrder, getChannelList, getTrackingNumber, createShippingDocument, massShipOrder",
-      "Payment: getEscrowDetail (payment reconciliation)",
-      "Webhook Push: verifyShopeePushSignature, parseShopeePushPayload, createShopeePushSignature",
-      "Typed end to end, with request/response DTOs for every call",
+      "446 endpoints across 30 domains: orders, products, logistics, payment, returns, ads, vouchers, livestream, global products and more",
+      "Namespaced domains (shopee.ads.*, shopee.voucher.*, shopee.globalProduct.*) keep 20 new domains clear of existing method names",
+      "Errors: every failure throws a ShopeeApiError with code, request ID, HTTP status and the raw response",
+      "Reliability: 30s timeout on every call; GET retries 408/429/5xx with exponential backoff, jitter and Retry-After; POST is never retried, so an order is never shipped or cancelled twice",
+      "OAuth: generateAuthLink, fetchTokenWithAuthCode, fetchTokenWithRefreshToken",
+      "Webhooks: verifyShopeePushSignature, parseShopeePushPayload",
+      "File uploads sent as real multipart/form-data (5 upload endpoints fixed in v2.3.0)",
+      "No any in the public API; 147 unit tests",
     ],
     githubUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/shopee-api-client",
@@ -123,6 +124,26 @@ if (isValid) {
   console.warn("Signature mismatch, dropping the request");
 }`,
       },
+      {
+        title: "Namespaced domains and typed errors",
+        language: "typescript",
+        code: `import { ShopeeApiError } from "shopee-api-client";
+
+try {
+  // Newer domains live under their own namespace
+  const vouchers = await shopee.voucher.getVoucherList({
+    status: "ongoing", // upcoming | ongoing | expired | all
+    page_size: 50,
+  });
+  console.log(vouchers);
+} catch (err) {
+  if (err instanceof ShopeeApiError) {
+    // Shopee's error code, request ID and HTTP status, ready for logs
+    console.error(err.code, err.requestId, err.status);
+  }
+  throw err;
+}`,
+      },
     ],
   },
   {
@@ -131,17 +152,17 @@ if (isValid) {
     npmName: "tiktokshops-api-client",
     tag: "API Client",
     description:
-      "TypeScript API client for TikTok Shop Open API. Covers seller authorization, order APIs, product APIs, and fulfillment APIs.",
+      "TypeScript client for TikTok Shop Open API: 155 endpoints across 14 domains, request signing included, typed errors.",
     longDescription:
-      "tiktokshops-api-client is a TypeScript library for TikTok Shop Open API. It speaks both v1 and v2 and covers seller OAuth, orders (getOrderList, getOrderDetail, getPriceDetail), products (getProductDetail, getCategories, getBrands, getAttributes, createProduct), fulfillment (shipPackage, getPackageTimeSlots, getPackageShippingDocument), and the logistic APIs. Request signing uses crypto-js and follows the signature scheme TikTok Shop expects.",
+      "tiktokshops-api-client is a TypeScript library for TikTok Shop Open API, covering all 14 domains of the reference tiktok-shop-sdk (155 endpoints): orders, products, fulfillment, logistics, finance, promotions, returns and refunds, affiliate, analytics and more. It implements TikTok's HMAC-SHA256 request signing, including the shop_cipher parameter and the separate signing rule for multipart uploads. The domains live under typed namespaces (tiktok.finance, tiktok.order, …) next to the original flat methods, so existing code keeps working. Failures throw a TiktokApiError, and every call has a 30-second timeout.",
     features: [
-      "OAuth: generateAuthLink, fetchTokenWithAuthCode, refreshToken, getAuthorizedShop",
-      "Orders (v2): getOrderList, getOrderDetail, getPriceDetail",
-      "Products (v2): getProductDetail, getCategories, getBrands, getAttributes, createProduct",
-      "Fulfillment (v2): shipPackage, getPackageTimeSlots, getPackageShippingDocument",
-      "API v1 (legacy): order and product APIs",
-      "Config: appKey, appSecret, serviceId, shopId, shopCipher, accessToken, refreshToken",
-      "US domain support for the US Partner Center",
+      "155 endpoints across 14 domains: order, product, fulfillment, logistics, finance, promotion, return/refund, affiliate, analytics, seller, shop and more",
+      "Namespaced domains (tiktok.finance.*, tiktok.order.*) sit next to the original flat methods without breaking them",
+      "HMAC-SHA256 request signing, with shop_cipher and the multipart signing rule handled for you",
+      "Errors: failures throw a TiktokApiError with code, request ID and HTTP status; 30s timeout on every call",
+      "Product image and file uploads over multipart/form-data",
+      "OAuth: generateAuthLink (US Partner Center supported), fetchTokenWithAuthCode, refreshToken, getAuthorizedShop",
+      "No any in the public API; every endpoint checked against the reference SDK, 17 unit tests",
     ],
     githubUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/tiktokshops-api-client",
@@ -214,6 +235,26 @@ const newProduct = await tiktok.createProduct({
   // ... remaining fields
 });`,
       },
+      {
+        title: "Namespaced domains",
+        language: "typescript",
+        code: `import { TiktokApiError } from "tiktokshops-api-client";
+
+try {
+  // Finance: settlements and withdrawals from the last 7 days
+  const withdrawals = await tiktok.finance.getWithdrawals({
+    types: ["WITHDRAW", "SETTLE"],
+    create_time_ge: Math.floor(Date.now() / 1000) - 7 * 24 * 3600,
+    page_size: 50,
+  });
+  console.log(withdrawals.data);
+} catch (err) {
+  if (err instanceof TiktokApiError) {
+    console.error(err.code, err.requestId, err.status);
+  }
+  throw err;
+}`,
+      },
     ],
   },
   {
@@ -222,16 +263,17 @@ const newProduct = await tiktok.createProduct({
     npmName: "lazada-api-client",
     tag: "API Client",
     description:
-      "TypeScript API client for Lazada Open API. Covers seller authorization, order APIs, and product APIs.",
+      "TypeScript client for Lazada Open API: 363 endpoints across 33 domains, routed to the right regional host.",
     longDescription:
-      "lazada-api-client is a TypeScript library for Lazada Open API, and works against every Lazada region (sg, my, th, vn, id, ph, cb). It covers seller OAuth (generateAuthLink, fetchTokenWithAuthCode, refreshToken), orders (getOrdersBeforeSomeDay, getOrderDetail), and products (getProducts, getProductItem, updateSellableQuantity, updateStatusProduct, updatePrice, getCategoryTree, getBrandByPages, createProduct). Every request is signed for you following the Lazada API signature scheme.",
+      "lazada-api-client is a TypeScript library for Lazada Open API, covering the 33 domains of the Lazada OpenAPI specification (363 endpoints): orders, products, logistics, fulfillment, finance, returns and refunds, vouchers, sponsored solutions and more. Each request goes to the regional host for the configured country (sg, vn, ph, my, th, id) and is signed with HMAC-SHA256. POST payloads travel in a form-encoded body rather than the URL, so large requests no longer hit URL length limits. The domains live under typed namespaces (lazada.finance, lazada.order, …); failures throw a LazadaApiError, and every call has a 30-second timeout.",
     features: [
-      "OAuth: generateAuthLink, fetchTokenWithAuthCode, refreshToken",
-      "Orders: getOrdersBeforeSomeDay, getOrderDetail",
-      "Products: getProducts, getProductItem, updateSellableQuantity, updateStatusProduct, updatePrice",
-      "Categories & brands: getCategoryTree, getBrandByPages, createProduct",
-      "Regions: sg, my, th, vn, id, ph, cb",
-      "SHA256 request signing handled for you, per the Lazada spec",
+      "363 endpoints across 33 domains: orders, products, logistics, fulfillment, finance, returns, vouchers, sponsored solutions, IM and more",
+      "Regional routing: requests go to the host for countryCode (sg, vn, ph, my, th, id); token calls use the auth host",
+      "Namespaced domains (lazada.finance.*, lazada.order.*, lazada.fbl.*) sit next to the original flat methods",
+      "Errors: any non-zero response code throws a LazadaApiError with code, type, request ID and HTTP status",
+      "30s timeout on every call; POST payloads sent as a form-encoded body, not in the URL",
+      "Orders: getOrders (one page) and getAllOrders (auto-pagination), plus pack, ready-to-ship and AWB printing",
+      "HMAC-SHA256 request signing handled for you; no any in the public API; 18 unit tests",
     ],
     githubUrl:
       "https://github.com/phamkhanhminhman97/shopee-tiktok-lazada-monorepo/tree/main/packages/lazada-api-client",
@@ -263,7 +305,7 @@ const lazada = new LazadaModule({
   appSecret: process.env.LAZADA_APP_SECRET!,
   appAccessToken: process.env.LAZADA_ACCESS_TOKEN!,
   refreshToken: process.env.LAZADA_REFRESH_TOKEN!,
-  countryCode: "sg", // sg, my, th, vn, id, ph, cb
+  countryCode: "sg", // sg, vn, ph, my, th, id
 });`,
       },
       {
@@ -285,6 +327,27 @@ await lazada.updateStatusProduct(123456, {
   status: "active", // or "inactive"
 });`,
       },
+      {
+        title: "Orders, namespaces and typed errors",
+        language: "typescript",
+        code: `import { LazadaApiError } from "lazada-api-client";
+
+try {
+  // Every order updated in the last 24 hours, all pages fetched for you
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const orders = await lazada.getAllOrders({ update_after: since });
+  console.log(orders.length);
+
+  // Newer domains live under their own namespace
+  const payouts = await lazada.finance.getPayoutStatus({ created_after: since });
+  console.log(payouts);
+} catch (err) {
+  if (err instanceof LazadaApiError) {
+    console.error(err.code, err.type, err.requestId);
+  }
+  throw err;
+}`,
+      },
     ],
   },
   {
@@ -298,6 +361,7 @@ await lazada.updateStatusProduct(123456, {
       "shopee-tiktokshops-lazada-api is a wrapper package that pulls in shopee-api-client, tiktokshops-api-client and lazada-api-client together. Instead of installing three packages and tracking three version numbers, one npm install gets you all three marketplaces. It re-exports every module, class, type and DTO from the three child packages, which keeps dependency management simpler in a multi-channel e-commerce system.",
     features: [
       "Re-exports ShopeeModule, TiktokModule and LazadaModule from one package",
+      "Also re-exports every type and error class: ShopeeApiError, TiktokApiError, LazadaApiError",
       "Child package versions stay in sync via the monorepo scripts",
       "Fewer dependency conflicts than installing the three SDKs separately",
       "Meant for multi-channel e-commerce systems",

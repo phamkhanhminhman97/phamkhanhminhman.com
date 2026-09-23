@@ -255,7 +255,8 @@ export default async function ProjectDetailPage({
               <code>{`npm i ${pkg.npmName}`}</code>
             </pre>
             <p className="font-mono text-[10px] text-zinc-500 mt-2">
-              Requires Node.js 18 or higher
+              {/* Theo trường "engines" trong package.json của cả bốn gói; CI chạy test trên Node 20. */}
+              Requires Node.js 16 or higher (tested on Node 20)
             </p>
           </section>
 

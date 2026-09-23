@@ -41,7 +41,7 @@ const post: BlogPost = {
     "packages/*"
   ],
   "devDependencies": {
-    "@changesets/cli": "^2.31.0"
+    "@changesets/cli": "^3.0.2"
   }
 }`}
         </pre>
