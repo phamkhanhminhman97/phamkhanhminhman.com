@@ -1,5 +1,6 @@
 import type { BlogPost } from "./types";
 
+import postgresqlIndexNotesMeasured from "./posts/postgresql-index-notes-measured";
 import optimisticVsPessimisticLocking from "./posts/optimistic-vs-pessimistic-locking";
 import postgresqlIsolationLevelsMeasured from "./posts/postgresql-isolation-levels-measured";
 import doubleCountingInAppendOnlyProjections from "./posts/double-counting-in-append-only-projections";
@@ -16,6 +17,7 @@ export type { BlogPost } from "./types";
  * `./posts/<slug>.tsx` — xem `./types.ts` cho hình dạng `BlogPost`.
  */
 export const blogPosts: BlogPost[] = [
+  postgresqlIndexNotesMeasured,
   postgresqlIsolationLevelsMeasured,
   optimisticVsPessimisticLocking,
   doubleCountingInAppendOnlyProjections,
