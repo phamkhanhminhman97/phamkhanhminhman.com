@@ -1,5 +1,6 @@
 import type { BlogPost } from "./types";
 
+import refreshTokenRotationMeasured from "./posts/refresh-token-rotation-measured";
 import nodejsWorkerThreadsMeasured from "./posts/nodejs-worker-threads-measured";
 import postgresqlIndexNotesMeasured from "./posts/postgresql-index-notes-measured";
 import optimisticVsPessimisticLocking from "./posts/optimistic-vs-pessimistic-locking";
@@ -18,6 +19,7 @@ export type { BlogPost } from "./types";
  * `./posts/<slug>.tsx` — xem `./types.ts` cho hình dạng `BlogPost`.
  */
 export const blogPosts: BlogPost[] = [
+  refreshTokenRotationMeasured,
   nodejsWorkerThreadsMeasured,
   postgresqlIndexNotesMeasured,
   postgresqlIsolationLevelsMeasured,
