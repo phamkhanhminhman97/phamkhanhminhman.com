@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 import type { BlogPost } from "../types";
 
 /*
- * Mọi con số trong bài đo ngày 25/09/2026 trên Apple M4 (10 nhân: 4 performance,
- * 6 efficiency), Node.js 22.21.1; phần container dùng image node:22-slim
- * (Node.js 22.23.3, libuv 1.51.0) trong Docker Desktop, VM 2 CPU.
+ * Đo ngày 25/09/2026, đo lại toàn bộ ngày 26/09/2026 (lệch dưới 10%, trừ ping
+ * dưới 1 ms và những chỗ bài ghi rõ). Apple M4 (10 nhân: 4 performance,
+ * 6 efficiency), Node.js 22.21.1; phần container dùng node:20-slim (20.20.2,
+ * libuv 1.46.0), node:22-slim (22.23.3, libuv 1.51.0) và node:24-slim (24.21.0,
+ * libuv 1.52.1) trong Docker Desktop, VM 2 CPU.
  * Benchmark: trung vị của 3–5 lần chạy; CPU time lấy từ process.cpuUsage(),
- * cộng dồn mọi thread của process. Test HTTP server (mục 4–6) chạy 2 lần, bảng
- * lấy lần 1, lần 2 lệch dưới 10% (trừ ping max cỡ vài ms).
+ * cộng dồn mọi thread của process. Bảng mục 1 là code gốc chạy nguyên văn
+ * (CPU = user + sys từ /usr/bin/time); bảng 64 request ở mục 5 đo ngày 26/09.
  * Code gốc: tipjs-main/backend/woker-thread.
  */
 
@@ -50,7 +52,7 @@ const post: BlogPost = {
   title: "My worker_threads benchmark said 4× faster. On a server, that was the least important number.",
   readTime: "9 min read",
   description:
-    "Re-running an old Node.js worker_threads benchmark on 10 cores: one of six workers got no jobs, a slice-for-splice bug in the earlier version ran 2 jobs as 5 and made four workers slower than none (991 ms vs 915 ms), the speedup stopped at 5.8× on 10 cores while os.cpus() ignored a container's CPU limit, and the number that matters on a server was /ping: 1.8 s with the work on the main thread, 0.5 ms with a worker pool.",
+    "Re-running an old Node.js worker_threads benchmark on 10 cores: one of six workers got no jobs, a slice-for-splice bug in the earlier version ran 2 jobs as 5 and made four workers slower than none (991 ms vs 915 ms), the speedup topped out near 5.8× while os.cpus() ignored a container's CPU limit, and the number that matters on a server was /ping: 1.8 s with the work on the main thread, 0.5 ms with a worker pool.",
   content: () => (
       <div className="font-serif-body text-[15px] text-zinc-800 leading-relaxed text-justify space-y-6">
         <p>
@@ -58,7 +60,7 @@ const post: BlogPost = {
           <code>main.js</code> counts to a billion five times on the main thread.{" "}
           <code>index.js</code> hands the same five jobs to six worker threads, and{" "}
           <code>worker.js</code> does the counting. I ran it once, saw the second number come
-          out much smaller than the first, and wrote down the lesson: worker threads make
+          out much smaller than the first, and took away the obvious lesson: worker threads make
           CPU-heavy work faster.
         </p>
         <p>
@@ -70,23 +72,26 @@ const post: BlogPost = {
         </p>
         <p>
           The setup: Node.js 22.21 on an Apple M4 laptop with 10 cores (4 performance, 6
-          efficiency), plus Node.js 22.23 in Docker for the container part. Times are medians of
-          three to five runs. Next to wall-clock time I report CPU time from{" "}
+          efficiency), plus Node.js 20.20, 22.23 and 24.21 in Docker for the container part.
+          Times are medians of three to five runs. Next to wall-clock time I report CPU time from{" "}
           <code>process.cpuUsage()</code>, which adds up every thread in the process. That is
-          the number that shows wasted work. The server tests in sections 4 to 6 ran twice;
-          the tables show the first run, and the second agreed within 10%, apart from ping
-          maxima of a few milliseconds.
+          the number that shows wasted work. I repeated every measurement the next day in a
+          fresh session; the results agreed within 10%, apart from sub-millisecond ping times
+          and where the text says otherwise.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">
           1. The benchmark as written: 4×, and one worker with nothing to do
         </h3>
-        <p>The notes, run unchanged:</p>
+        <p>
+          The notes, run unchanged. Wall time is what the scripts print; CPU time is for the
+          whole process, from <code>time</code>:
+        </p>
         <Table
           head={["Run", "wall time", "CPU time"]}
           rows={[
-            ["main.js: 5 jobs on the main thread", "2,302 ms", "2,298 ms"],
-            ["index.js: 5 jobs, 6 workers", <Good key="t">580 ms</Good>, "2,840 ms"],
+            ["main.js: 5 jobs on the main thread", "2,334 ms", "2.31 s"],
+            ["index.js: 5 jobs, 6 workers", <Good key="t">575 ms</Good>, "2.85 s"],
           ]}
         />
         <p>Four times faster. Then I printed what each worker had received:</p>
@@ -101,14 +106,14 @@ const post: BlogPost = {
         <p>
           <code>slice()</code> truncates fractional indexes, so the first worker got an empty
           array, started up, and returned 0. The total was still right, 5,000,000,000, because
-          the last worker takes whatever is left, so nothing looked wrong. The six workers were
-          really five.
+          the truncated ranges still cover all five jobs, so nothing looked wrong. The six
+          workers were really five.
         </p>
         <p>
-          The per-worker times showed something else. Each job took 546–563 ms inside a
-          worker, against 460 ms on the main thread running alone. The same job runs slower when
-          four other cores are busy at the same time, and the process spent 2.84 s of CPU on work
-          that took 2.30 s on one thread. Five jobs on five cores gave 4×, not 5×.
+          Timing each worker separately showed something else. Each job took 530–565 ms inside
+          a worker, against about 465 ms on the main thread running alone. The same job runs
+          slower when four other cores are busy at the same time, and the process spent 2.85 s
+          of CPU on work that took 2.31 s on one thread. Five jobs on five cores gave 4×, not 5×.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">
@@ -131,8 +136,8 @@ const post: BlogPost = {
           It is meant to cut the array into <code>n</code> pieces. It never cuts anything.{" "}
           <code>slice</code> copies part of the array and leaves the array unchanged, so every
           pass starts again from index 0 of the full list, and the last chunk is always the
-          whole array. The function only works with <code>splice</code>, which removes the items
-          it returns:
+          whole array. It only does its job with <code>splice</code>, which removes the items it
+          returns:
         </p>
         <pre className={pre}>
 {`                     slice (as written)       splice
@@ -158,17 +163,17 @@ const post: BlogPost = {
           reported &ldquo;completed&rdquo; and the main thread printed a time. The later version
           adds up the counts; with this bug it would have printed 5,000,000,000 for two jobs of
           a billion, and the mistake would have been obvious in a second. Wall time hid it as
-          well: 991 ms against 915 ms looks like worker overhead. CPU time at 2.8 times the work
-          does not.
+          well: 991 ms against 915 ms looks like worker overhead. CPU time, 2.8 times the main
+          thread&apos;s, does not.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">
-          3. &ldquo;However many workers you want&rdquo;: the cores decide, and os.cpus() does not know your limit
+          3. &ldquo;The number of workers you want&rdquo;: the cores decide, and os.cpus() does not know your limit
         </h3>
         <p>
-          The notes set <code>numWorkers = 6</code> with the comment &ldquo;however many workers
-          you want&rdquo;. So I varied it: the same 4.8 billion increments, split evenly as 480
-          jobs of ten million:
+          The notes set <code>numWorkers = 6</code>{" "}with the comment &ldquo;the number of workers
+          you want to use&rdquo;. So I varied it: the same 4.8 billion increments, split evenly as
+          480 jobs of ten million:
         </p>
         <Table
           head={["Workers", "wall time", "speedup", "CPU time"]}
@@ -179,17 +184,21 @@ const post: BlogPost = {
             ["4", "640 ms", "3.5×", "2,556 ms"],
             ["6", "506 ms", "4.5×", "2,914 ms"],
             ["8", "415 ms", "5.5×", "3,211 ms"],
-            ["10", <Good key="t">394 ms</Good>, <Good key="s">5.8×</Good>, "3,420 ms"],
+            ["10", "394 ms", "5.8×", "3,420 ms"],
             ["12", "390 ms", "5.8×", "3,466 ms"],
             ["16", "398 ms", "5.7×", "3,563 ms"],
             ["32", "447 ms", "5.1×", "4,019 ms"],
           ]}
         />
         <p>
-          Nearly linear up to four workers, the four performance cores. The six efficiency cores
-          add less each, the curve flattens at ten, and past the core count more workers only
-          cost more: 32 workers took longer than 10 and burned 1.8 times the CPU of one. Ten cores
-          gave 5.8×. The ceiling is the number of cores, and not every core is equal.
+          Close to linear up to two workers, and 3.5× at four, the number of performance cores.
+          Each of the six efficiency cores adds less, and from eight workers on the differences
+          are noise: over three sessions, 8, 10, 12 and 16 workers all finished in 390–455 ms,
+          and the fastest of them changed between sessions. The middle rows are also the least
+          stable; with a browser busy in the background, one session ran six workers in 615 ms
+          instead of 506. Past the core count, more workers only cost more: 32 were slower than
+          10 and burned 1.8 times the CPU of one. On ten cores the speedup topped out near 5.8×.
+          The ceiling is the number of cores, and not every core is equal.
         </p>
         <p>
           In production the count often comes from <code>os.cpus().length</code>. In a
@@ -197,29 +206,34 @@ const post: BlogPost = {
           has 2 CPUs:
         </p>
         <pre className={pre}>
-{`                              os.cpus().length   os.availableParallelism()
-docker run --cpus=1                  2                    1
-docker run --cpus=1.5                2                    1
-docker run --cpus=0.9                2                    2
-docker run --cpus=0.5                2                    2
-docker run --cpuset-cpus=0           2                    1`}
+{`                   os.cpus()         os.availableParallelism()
+docker run         (any Node)     Node 20.20   Node 22.23   Node 24.21
+--cpus=1               2               2            1            1
+--cpus=1.5             2               2            1            1
+--cpus=0.9             2               2            2            1
+--cpus=0.5             2               2            2            1
+--cpuset-cpus=0        2               1            1            1`}
         </pre>
         <p>
           <a href="https://nodejs.org/docs/latest-v22.x/api/os.html#osavailableparallelism" target="_blank" rel="noopener noreferrer" className={link}>os.availableParallelism()</a>{" "}
-          also reads the CPU quota from the cgroup, which is why it gets 1 right. But libuv 1.51,
-          the version in Node.js 22.23, computes that quota as{" "}
+          also reads the CPU quota from the cgroup on Node.js 22 and 24, which is why they get{" "}
+          <code>--cpus=1</code> right. Node.js 20 ships an older libuv that ignores the quota and
+          only respects <code>--cpuset-cpus</code>. Node.js 22.23, the latest 22.x, ships libuv
+          1.51, which computes the quota as{" "}
           <a href="https://github.com/libuv/libuv/blob/v1.51.0/src/unix/linux.c#L2372" target="_blank" rel="noopener noreferrer" className={link}>limit / period in integer arithmetic</a>:
           1.5 CPUs becomes 1, and anything below one CPU becomes 0, which the{" "}
           <a href="https://github.com/libuv/libuv/blob/v1.51.0/src/unix/core.c#L2052" target="_blank" rel="noopener noreferrer" className={link}>next check</a>{" "}
-          treats as &ldquo;no limit&rdquo;, falling back to the machine&apos;s count. A
-          Kubernetes CPU limit of <code>500m</code> sets the same kind of quota, so I would
-          expect the same answer there; I have not tested it.
+          treats as &ldquo;no limit&rdquo;, falling back to the machine&apos;s count. libuv 1.52{" "}
+          <a href="https://github.com/libuv/libuv/blob/v1.52.0/src/unix/linux.c#L2348" target="_blank" rel="noopener noreferrer" className={link}>turns that 0 into a 1</a>,
+          and Node.js ships it from 24.16. A Kubernetes CPU limit of <code>500m</code> sets the
+          same kind of quota, so on Node.js 22 I would expect the same fallback there; I have not
+          tested it.
         </p>
         <p>
           What oversubscribing costs under a one-CPU limit: one worker 474 ms, two workers (the
           count <code>os.cpus()</code> suggests) 518 ms, four workers 592 ms. Size a pool from{" "}
           <code>os.availableParallelism()</code>, print it once inside the container you deploy,
-          and set the size yourself when the limit is a fraction.
+          and set the size yourself on Node.js 20, or on 22 when the limit is below one CPU.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">
@@ -229,7 +243,7 @@ docker run --cpuset-cpus=0           2                    1`}
           Everything so far measures how fast a batch finishes when the process has nothing else
           to do. A server always has something else to do. So I put the same billion-count
           behind an HTTP endpoint, <code>/report</code> (about 460 ms of CPU), next to a{" "}
-          <code>/ping</code> that returns &ldquo;ok&rdquo;, sent eight reports at once, and
+          <code>/ping</code>{" "}that returns &ldquo;ok&rdquo;, sent eight reports at once, and
           pinged every 50 ms until they finished:
         </p>
         <Table
@@ -244,10 +258,10 @@ docker run --cpuset-cpus=0           2                    1`}
           With the work on the main thread, the server was not only slow at reports. It was slow
           at everything: a request that does nothing waited 1.8 s at the median and 3.6 s at
           worst. Health checks with a two-second timeout would have started failing while the
-          server was busy doing its job. When I first pinged every 10 ms instead of 50, some
-          pings on macOS failed with <code>ECONNRESET</code>: while the process was not
-          accepting connections, new ones piled up until the operating system started refusing
-          them.
+          server was busy doing its job. Pinging every 10 ms instead of 50 was worse: 188 of 333
+          pings failed outright with <code>ECONNRESET</code> or <code>EPIPE</code>. macOS lets at
+          most 128 connections wait to be accepted (<code>kern.ipc.somaxconn</code>), and while
+          the event loop was busy nothing accepted them. With a pool of eight, none failed.
         </p>
         <p>
           With a pool, the median <code>/ping</code> stayed under a millisecond and the reports
@@ -262,8 +276,8 @@ docker run --cpuset-cpus=0           2                    1`}
           5. What a worker costs: start-up, memory, and copying
         </h3>
         <p>
-          A worker is not a lightweight thread. It is a separate V8 instance with its own heap
-          and event loop. On this machine:
+          A worker is not a lightweight thread. Each one is an operating-system thread running
+          its own V8 isolate, with its own heap and event loop. On this machine:
         </p>
         <pre className={pre}>
 {`new Worker() until its first message     ~11 ms    (median of 20)
@@ -275,18 +289,20 @@ small message, round trip                ~0.01 ms`}
           load. Sixty-four reports at once:
         </p>
         <Table
-          head={["Setup", "all 64 done", "median report", "peak RSS"]}
+          head={["Setup", "all 64 done", "first report", "median report", "peak RSS"]}
           rows={[
-            ["pool of 8 workers + queue", "5,294 ms", <Good key="m">3,215 ms</Good>, <Good key="r">128 MB</Good>],
-            ["new Worker per request", "5,237 ms", "5,181 ms", "565 MB"],
+            ["pool of 10 workers + queue", "4,757 ms", <Good key="f">692 ms</Good>, <Good key="m">2,775 ms</Good>, <Good key="r">146 MB</Good>],
+            ["new Worker per request", "4,696 ms", "3,216 ms", "4,614 ms", "616 MB"],
           ]}
         />
         <p>
-          The total time is the same, because ten cores are the limit either way. But 64 threads
-          sharing 10 cores all finish near the end, so the median request took 5.2 s instead of
-          3.2 s, and memory went up 4.4 times. With a queue, the first eight finish in well under
-          a second and the rest wait their turn. Libraries such as Piscina give you the pool and the
-          queue; what matters is having one, created once at start-up.
+          Both kept all ten cores busy, so the batch took the same time. But 64 threads sharing
+          10 cores all finish near the end: the first report came back after 3.2 s instead of
+          0.7 s, the median after 4.6 s instead of 2.8 s, and memory went up 4.2 times. With a
+          queue, the first reports are back in 0.7 s and the rest wait their turn. The pool size
+          matters too: a pool of eight left two cores idle and needed 5.1–5.4 s for the same
+          batch. Libraries such as Piscina give you the pool and the queue; what matters is having
+          one, sized to the cores and created once at start-up.
         </p>
         <p>
           The other cost is data.{" "}
@@ -298,17 +314,17 @@ small message, round trip                ~0.01 ms`}
 {`1,000,000 objects { id, sku, price }
   postMessage to a worker and back               ~350 ms
   main thread blocked inside postMessage         ~115 ms   (serialising)
-  summing price on the main thread instead          8 ms
+  summing price on the main thread instead         ~8 ms
 
 32 MB Float64Array
-  copied                                         8–17 ms
-  transferred (ownership moves to the worker)     0.1 ms
-  SharedArrayBuffer                               0.1 ms`}
+  copied                                         4–17 ms
+  transferred (ownership moves to the worker)    ~0.1 ms
+  SharedArrayBuffer                              ≤0.1 ms`}
         </pre>
         <p>
-          Handing that array to a worker blocked the main thread fourteen times longer than
-          doing the work in place. Send the worker an id or a query and let it load its own data,
-          or pass numbers in typed arrays and transfer them.
+          Handing the million objects to a worker blocked the main thread for 115 ms, more than
+          ten times as long as summing their prices in place. Send the worker an id or a query
+          and let it load its own data, or pass numbers in typed arrays and transfer them.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">
@@ -317,7 +333,7 @@ small message, round trip                ~0.01 ms`}
         <p>
           The last thing the notes missed: Node already runs some expensive work off the main
           thread. The asynchronous versions of <code>crypto.pbkdf2</code>,{" "}
-          <code>crypto.scrypt</code>, <code>zlib</code> and the <code>fs</code> calls run on
+          <code>crypto.scrypt</code>, <code>zlib</code> and the <code>fs</code>{" "}calls run on
           libuv&apos;s thread pool. Password hashing at login is the common case.
           PBKDF2-HMAC-SHA512 at{" "}
           <a href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html" target="_blank" rel="noopener noreferrer" className={link}>OWASP&apos;s 220,000 iterations</a>{" "}
@@ -334,9 +350,9 @@ small message, round trip                ~0.01 ms`}
         <p>
           Dropping the <code>Sync</code> did what a worker pool would do, with no worker code.
           The catch is the size: four threads by default, shared with file system calls,{" "}
-          <code>dns.lookup</code> and compression, so a burst of logins can queue behind them and
-          slow them down in turn. <code>UV_THREADPOOL_SIZE</code> raises the limit; set it in the
-          environment when the process starts.
+          <code>dns.lookup</code> and compression, so a burst of logins can hold up file reads
+          and DNS lookups, and the other way round. <code>UV_THREADPOOL_SIZE</code> raises the
+          limit; set it in the environment when the process starts.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">What the notes say now</h3>
@@ -352,8 +368,9 @@ small message, round trip                ~0.01 ms`}
           </li>
           <li>
             <strong>Size the pool from <code>os.availableParallelism()</code>,</strong> checked
-            inside the container, never from <code>os.cpus().length</code>. A limit below one CPU
-            falls back to the machine&apos;s count.
+            inside the container, never from <code>os.cpus().length</code>. On Node.js 22 a
+            limit below one CPU still falls back to the machine&apos;s count; Node.js 20 ignores
+            the limit entirely.
           </li>
           <li>
             <strong>On a server, the win is the event loop, not the speedup.</strong>{" "}
