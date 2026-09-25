@@ -261,14 +261,34 @@ export function AntigravityCanvas({
       const rect = canvas.getBoundingClientRect();
       const x = clientX - rect.left;
       const y = clientY - rect.top;
-      if (x >= -40 && x <= width + 40 && y >= -40 && y <= height + 40) {
+
+      // Cho phép bấm trong và lân cận khu vực header
+      if (x >= -80 && x <= width + 80 && y >= -60 && y <= height + 80) {
+        const clampedX = Math.max(0, Math.min(width, x));
+        const clampedY = Math.max(0, Math.min(height, y));
+
+        // 1. Cú nổ lực tức thì: hất văng ngay lập tức các hạt trong vùng gần tâm chạm
+        for (const p of particles) {
+          const dx = p.x - clampedX;
+          const dy = p.y - clampedY;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 0 && dist < 220) {
+            const factor = Math.pow(1 - dist / 220, 1.4);
+            const blast = factor * 16;
+            p.vx += (dx / dist) * blast;
+            p.vy += (dy / dist) * blast;
+            p.spin += (Math.random() - 0.5) * 0.18;
+          }
+        }
+
+        // 2. Tạo làn sóng xung kích lan toả ra ngoài
         if (shockwaves.length >= MAX_SHOCKWAVES) shockwaves.shift();
         shockwaves.push({
-          x,
-          y,
-          radius: 0,
-          maxRadius: Math.max(width, height) * 0.45,
-          strength: 7.5,
+          x: clampedX,
+          y: clampedY,
+          radius: 4,
+          maxRadius: Math.max(width, height) * 0.55,
+          strength: 26.0,
         });
       }
     };
@@ -290,23 +310,25 @@ export function AntigravityCanvas({
         p.vy += (dy / dist) * push;
       }
 
-      // Lực đẩy từ các sóng kích nổ (Shockwave)
+      // Lực đẩy từ các sóng kích nổ đang lan toả (Shockwave)
       for (let i = 0; i < shockwaves.length; i++) {
         const sw = shockwaves[i];
         const swDx = p.x - sw.x;
         const swDy = p.y - sw.y;
         const swDist = Math.hypot(swDx, swDy);
-        const thickness = 40;
+        const thickness = 55;
         const delta = Math.abs(swDist - sw.radius);
 
         if (delta < thickness && swDist > 0) {
+          const progress = sw.radius / sw.maxRadius;
           const force =
             (1 - delta / thickness) *
-            (1 - sw.radius / sw.maxRadius) *
+            (1 - progress) *
             sw.strength *
             dt;
           p.vx += (swDx / swDist) * force;
           p.vy += (swDy / swDist) * force;
+          p.rotation += (Math.random() - 0.5) * 0.08 * dt;
         }
       }
 
@@ -320,16 +342,41 @@ export function AntigravityCanvas({
 
       if (p.x < -30) p.x = width + 30;
       else if (p.x > width + 30) p.x = -30;
-      // Chiều dọc cũng quay vòng ở CẢ HAI mép. Trước đây chỉ sinh lại theo dấu
-      // của prop `gravity`, nên khi độ nghiêng máy hay sóng xung kích đẩy hạt
-      // xuống dưới thì hạt rơi khỏi mép dưới và mất hẳn (đo được: header trống
-      // sau khoảng 21 giây cầm máy đứng thẳng).
+      // Chiều dọc cũng quay vòng ở CẢ HAI mép.
       if (p.y < -40) Object.assign(p, spawn("bottom"));
       else if (p.y > height + 40) Object.assign(p, spawn("top"));
     };
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
+
+      // 1. Vẽ các vòng sóng kích nổ lan toả trực quan
+      for (let i = 0; i < shockwaves.length; i++) {
+        const sw = shockwaves[i];
+        const progress = sw.radius / sw.maxRadius;
+        const alpha = Math.max(0, (1 - progress) * 0.45);
+        if (alpha <= 0.01) continue;
+
+        ctx.save();
+        // Vòng sóng chính màu đỏ red-700 chuẩn sắc nhấn website
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(185, 28, 28, ${alpha})`;
+        ctx.lineWidth = Math.max(1, 3.5 * (1 - progress));
+        ctx.stroke();
+
+        // Vòng sóng phụ mờ hơn tạo hiệu ứng sóng kép
+        if (sw.radius > 16) {
+          ctx.beginPath();
+          ctx.arc(sw.x, sw.y, sw.radius - 14, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(113, 113, 122, ${alpha * 0.5})`;
+          ctx.lineWidth = Math.max(1, 2 * (1 - progress));
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 2. Vẽ các hạt hình học
       for (const p of particles) {
         const s = (SPRITE_SIZE * p.size * p.depth) / SHAPE_SIZE;
         ctx.save();
@@ -345,9 +392,9 @@ export function AntigravityCanvas({
       const dt = lastTime ? Math.min((time - lastTime) / FRAME_MS, 3) : 1;
       lastTime = time;
 
-      // Cập nhật sóng kích nổ
+      // Cập nhật sóng kích nổ: tốc độ mở rộng theo thời gian thật
       for (let i = shockwaves.length - 1; i >= 0; i--) {
-        shockwaves[i].radius += 6.0 * dt;
+        shockwaves[i].radius += 7.5 * dt;
         if (shockwaves[i].radius >= shockwaves[i].maxRadius) {
           shockwaves.splice(i, 1);
         }
@@ -407,8 +454,20 @@ export function AntigravityCanvas({
       pointerY = -9999;
     };
 
+    let lastShockwaveTime = 0;
+    const handleTrigger = (clientX: number, clientY: number) => {
+      const now = performance.now();
+      if (now - lastShockwaveTime < 80) return;
+      lastShockwaveTime = now;
+      triggerShockwave(clientX, clientY);
+    };
+
     const onPointerDown = (e: PointerEvent) => {
-      triggerShockwave(e.clientX, e.clientY);
+      handleTrigger(e.clientX, e.clientY);
+    };
+
+    const onClick = (e: MouseEvent) => {
+      handleTrigger(e.clientX, e.clientY);
     };
 
     const onDeviceOrientation = (e: DeviceOrientationEvent) => {
@@ -423,6 +482,7 @@ export function AntigravityCanvas({
     if (!reducedMotion) {
       window.addEventListener("pointermove", onPointerMove, { passive: true });
       window.addEventListener("pointerdown", onPointerDown, { passive: true });
+      window.addEventListener("click", onClick, { passive: true });
       document.documentElement.addEventListener("pointerleave", onPointerLeave);
       document.documentElement.addEventListener("pointercancel", onPointerLeave);
 
@@ -448,6 +508,7 @@ export function AntigravityCanvas({
       visibility.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("click", onClick);
       document.documentElement.removeEventListener("pointerleave", onPointerLeave);
       document.documentElement.removeEventListener("pointercancel", onPointerLeave);
       if (enableGyro && "DeviceOrientationEvent" in window) {
