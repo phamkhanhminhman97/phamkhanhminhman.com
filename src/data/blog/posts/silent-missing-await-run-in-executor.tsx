@@ -11,7 +11,7 @@ const post: BlogPost = {
       <div className="font-serif-body text-[15px] text-zinc-800 leading-relaxed text-justify space-y-6">
         <p>
           A background service ran fine for weeks. Every so often one processing cycle
-          would act on data that was <strong>incomplete</strong> — a few records simply
+          would act on data that was <strong>incomplete</strong>{" "}— a few records simply
           missing. No exception. No warning. Nothing in the logs. Restarting made it go
           away, so for a long time it was filed under &ldquo;probably the network&rdquo;.
         </p>

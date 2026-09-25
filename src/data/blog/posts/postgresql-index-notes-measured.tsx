@@ -66,7 +66,7 @@ Bitmap Index Scan     collect matching row locations from the index first,
         </h3>
         <p>
           The note said PostgreSQL has clustered and non-clustered indexes, chosen with a{" "}
-          <code>CLUSTER</code> or <code>NONCLUSTER</code> keyword. That is SQL Server&apos;s
+          <code>CLUSTER</code> or <code>NONCLUSTER</code>{" "}keyword. That is SQL Server&apos;s
           model. PostgreSQL rejects both spellings:
         </p>
         <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
@@ -102,7 +102,7 @@ CREATE NONCLUSTERED INDEX x ON orders_c (customer_id);
           </table>
         </div>
         <p>
-          Right after <code>CLUSTER</code> the rows sit together and the query touches 17
+          Right after <code>CLUSTER</code>{" "}the rows sit together and the query touches 17
           pages instead of 1,003. Then ordinary traffic arrives: new orders land at the end
           of the table, updated rows move to wherever there is space, and after a single
           round of writes the same query is back up to 283 pages. The planner&apos;s
@@ -146,7 +146,7 @@ WHERE shop_id = 42
 -- 842 rows; the month alone holds 164,243 orders`}
         </pre>
         <p>
-          <code>created_at</code> is almost unique; <code>shop_id</code> has 200 values. The
+          <code>created_at</code> is almost unique; <code>shop_id</code>{" "}has 200 values. The
           &ldquo;most selective first&rdquo; rule says <code>(created_at, shop_id)</code>. I
           built each index alone and ran the query against it:
         </p>
@@ -172,7 +172,7 @@ WHERE shop_id = 42
           is how a B-tree range scan works. With <code>created_at</code> first, the scan
           starts at June 1st and has to walk every entry until July 1st, all 164,243 of
           them from every shop, checking <code>shop_id</code> as it goes. With{" "}
-          <code>shop_id</code> first, it jumps to shop 42 and reads only that shop&apos;s
+          <code>shop_id</code>{" "}first, it jumps to shop 42 and reads only that shop&apos;s
           June, which is contiguous in the index.
         </p>
         <p>
@@ -364,7 +364,7 @@ CREATE INDEX ON orders (created_at) WHERE is_refunded;   -- 456 kB, 0.44 ms`}
           <a href="https://www.postgresql.org/docs/18/indexes-partial.html" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">partial index</a>{" "}
           covers only the 20,001 refunded rows. It is 135 times smaller, costs nothing on
           writes to orders that were never refunded, and answers the query in about the
-          same time. The planner uses it whenever the query&apos;s <code>WHERE</code> implies
+          same time. The planner uses it whenever the query&apos;s <code>WHERE</code>{" "}implies
           the index&apos;s condition.
         </p>
 

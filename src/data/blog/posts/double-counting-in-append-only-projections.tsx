@@ -233,7 +233,7 @@ print(schedule)                          # {'finished_at': None} - a correct val
             different data, you already have this — you just have not had a correction yet.
           </li>
           <li>
-            <strong>Key idempotency on the identity of the fact,</strong> not on its content
+            <strong>Key idempotency on the identity of the fact,</strong>{" "}not on its content
             or on a polling time window. Content tells you whether the data looks new;
             identity is what lets you find &ldquo;the row this fact already produced&rdquo;
             and update it instead of adding to it.

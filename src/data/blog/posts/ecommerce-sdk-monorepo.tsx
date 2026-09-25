@@ -46,7 +46,7 @@ const post: BlogPost = {
 }`}
         </pre>
         <p>
-          One <code>npm install</code> at the root now installs every package, and the three
+          One <code>npm install</code>{" "}at the root now installs every package, and the three
           clients get symlinked into the all-in-one package&apos;s{" "}
           <code>node_modules</code> instead of being downloaded from the registry. The tree
           is deliberately flat:
@@ -76,7 +76,7 @@ const post: BlogPost = {
         <p>
           That failure mode — silent locally, broken only for users — is exactly the kind
           that deserves a script rather than discipline. <code>sync-all-in-one-deps.cjs</code>{" "}
-          reads the current version out of each client&apos;s <code>package.json</code> and
+          reads the current version out of each client&apos;s <code>package.json</code>{" "}and
           writes it back into the wrapper&apos;s dependencies as a caret range:
         </p>
         <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
@@ -87,7 +87,7 @@ npm run sync-all-in-one-deps
 npm run check-all-in-one-deps`}
         </pre>
         <p>
-          The <code>--check</code> mode is the half that matters. Running the sync by hand
+          The <code>--check</code>{" "}mode is the half that matters. Running the sync by hand
           is still something I can forget; running it in CI turns &ldquo;the wrapper points
           at stale versions&rdquo; into a failed build on the pull request that caused it.
           The script also takes <code>--bump patch|minor|major</code> so releasing the

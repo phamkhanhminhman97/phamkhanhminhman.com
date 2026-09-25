@@ -33,7 +33,7 @@ console.log(raw);               // {"code":1,"amount":10.50,"shop_id":123}
 console.log(reparsed);          // {"code":1,"amount":10.5,"shop_id":123}  <- 10.50 → 10.5`}
         </pre>
         <p>
-          <code>10.50</code> and <code>10.5</code> are the same number and two different byte
+          <code>10.50</code> and <code>10.5</code>{" "}are the same number and two different byte
           strings. HMAC knows nothing about &ldquo;JSON values&rdquo; — it hashes bytes. Two
           different strings mean two different signatures. Run the snippet above through any
           <code> crypto.createHmac(&ldquo;sha256&rdquo;, key)</code> you like and the results
@@ -44,7 +44,7 @@ console.log(reparsed);          // {"code":1,"amount":10.5,"shop_id":123}  <- 10
         <p>
           Nobody deliberately writes &ldquo;parse it, serialize it back, then verify&rdquo;.
           It happens implicitly: an <code>express.json()</code> middleware mounted at the app
-          level — usually put there for the other routes — runs <em>before</em> the webhook
+          level — usually put there for the other routes — runs <em>before</em>{" "}the webhook
           route in Express&apos;s middleware chain. By the time the verification code touches{" "}
           <code>req.body</code>, the body has already been parsed into an object, and the
           original bytes are <strong>gone for good</strong>, no matter how carefully you{" "}
@@ -92,7 +92,7 @@ console.log(reparsed);          // {"code":1,"amount":10.5,"shop_id":123}  <- 10
         <h3 className="font-sans font-bold text-lg text-black pt-4">4. Not just Express</h3>
         <p>
           This is not an Express problem. Any framework that parses the JSON body{" "}
-          <strong>before</strong> your route handler gets a chance to read the raw bytes has
+          <strong>before</strong>{" "}your route handler gets a chance to read the raw bytes has
           the same exposure — the root of it is &ldquo;who touches the original bytes
           first&rdquo;, not the syntax of one particular framework. NestJS (which runs on
           Express by default) hits it in exactly the same way if you do not handle it,

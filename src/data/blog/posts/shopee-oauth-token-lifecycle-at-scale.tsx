@@ -83,7 +83,7 @@ function signPublicRequest(path, config, timestamp) {
         2. The refresh token is shared state, not a config field
       </h3>
       <p>
-        Right above <code>fetchTokenWithRefreshToken</code> I copied a few numbers from
+        Right above <code>fetchTokenWithRefreshToken</code>{" "}I copied a few numbers from
         Shopee&apos;s docs, along with the date they were last updated: 2022-09-28. Treat
         them as reference values — check the current docs before you hardcode any of them:
       </p>
@@ -180,7 +180,7 @@ export interface ShopeeConfigList {
       </pre>
       <p>
         So the rule is simpler than hunting for places that need locking: <code>new</code> a{" "}
-        <code>ShopeeModule</code> per request, with the config read fresh from the database
+        <code>ShopeeModule</code>{" "}per request, with the config read fresh from the database
         for that request&apos;s <code>shopId</code>. One instance serves one shop for its
         whole life. You pay one small object per request and the entire class of bug stops
         existing.

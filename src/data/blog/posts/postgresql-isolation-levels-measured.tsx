@@ -145,7 +145,7 @@ TEST      holder ran a plain SELECT at RR    ->  writer waited    1 ms`}
         </pre>
         <p>
           The control is there to prove the measurement can detect a lock at all: a real
-          <code> FOR UPDATE</code> made the writer wait out the holder&apos;s full four
+          <code> FOR UPDATE</code>{" "}made the writer wait out the holder&apos;s full four
           seconds. Against a plain <code>SELECT</code> at Repeatable Read the same writer
           finished in a millisecond. There is no read lock. There was never a read lock.
         </p>
@@ -287,7 +287,7 @@ SERIALIZABLE      1 person  left on call    ERROR 40001: could not serialize acc
             phantom protection for free. Bring the retry loop.
           </li>
           <li>
-            <strong>Serializable</strong> when correctness depends on an invariant spanning
+            <strong>Serializable</strong>{" "}when correctness depends on an invariant spanning
             rows that your transaction does not itself write — the on-call rule, double
             booking, any &ldquo;at least one&rdquo; or &ldquo;at most N&rdquo; constraint.
             Nothing below it sees write skew.
