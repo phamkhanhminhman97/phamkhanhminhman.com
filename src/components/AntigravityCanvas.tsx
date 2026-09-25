@@ -46,6 +46,16 @@ const FRICTION = 0.96;
 const POINTER_RADIUS = 130;
 /** Một khung chuẩn 60 Hz: bước mô phỏng tính theo thời gian thật, để màn 120 Hz không trôi nhanh gấp đôi. */
 const FRAME_MS = 1000 / 60;
+/** Số sóng xung kích tối đa cùng lúc: click liên tục không làm hàng đợi phình ra. */
+const MAX_SHOCKWAVES = 5;
+
+interface Shockwave {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  strength: number;
+}
 
 interface Particle {
   x: number;
@@ -69,6 +79,15 @@ export interface AntigravityCanvasProps {
   /** Âm là trôi lên, dương là rơi xuống. */
   gravity?: number;
   opacity?: number;
+  /** Bật làn sóng kích nổ khi click/chạm vào header. */
+  enableShockwave?: boolean;
+  /**
+   * Trọng lực theo độ nghiêng máy (gyroscope). Tắt mặc định: trên điện thoại
+   * canvas đang ẩn (`hidden md:block`), còn iOS/iPadOS chỉ gửi sự kiện sau khi
+   * gọi DeviceOrientationEvent.requestPermission() từ một thao tác người dùng,
+   * nên thực tế chỉ tablet Android và laptop 2-trong-1 nhận được.
+   */
+  enableGyro?: boolean;
   className?: string;
 }
 
@@ -79,6 +98,8 @@ export function AntigravityCanvas({
   colors = SITE_PALETTE,
   gravity = -0.04,
   opacity = 0.5,
+  enableShockwave = true,
+  enableGyro = false,
   className = "",
 }: AntigravityCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -95,6 +116,9 @@ export function AntigravityCanvas({
 
   useEffect(() => {
     const el = canvasRef.current;
+    // Không dùng `desynchronized`: đó là gợi ý độ trễ thấp cho ứng dụng vẽ bút,
+    // lớp nền trang trí không được lợi gì, còn canvas trong suốt ở chế độ đó có
+    // thể bị rách hình trên một số máy.
     const context = el?.getContext("2d");
     if (!el || !context) return;
     const canvas: HTMLCanvasElement = el;
@@ -103,6 +127,7 @@ export function AntigravityCanvas({
     const palette = colorKey.split("|");
     const sprites = new Map<string, HTMLCanvasElement>();
     let particles: Particle[] = [];
+    const shockwaves: Shockwave[] = [];
     let width = 0;
     let height = 0;
     let frame = 0;
@@ -110,7 +135,18 @@ export function AntigravityCanvas({
     let onScreen = false;
     let pointerX = -9999;
     let pointerY = -9999;
+    let tiltX = 0;
+    let tiltY = 0;
 
+    /**
+     * Mở rộng lên 6 hình khối Material Design phong cách tối giản:
+     * 0: Tròn (Circle)
+     * 1: Vuông bo góc (Rounded Square)
+     * 2: Tam giác (Triangle)
+     * 3: Viên con nhộng (Pill / Capsule)
+     * 4: Vành khuyên (Donut / Ring)
+     * 5: Dấu cộng (Cross / Plus)
+     */
     const sprite = (color: string, shape: number): HTMLCanvasElement => {
       const key = color + ":" + shape;
       const cached = sprites.get(key);
@@ -128,44 +164,123 @@ export function AntigravityCanvas({
         g.fillStyle = color;
         g.translate(SPRITE_SIZE / 2, SPRITE_SIZE / 2);
         g.beginPath();
-        if (shape === 0) {
-          g.arc(0, 0, r, 0, Math.PI * 2);
-        } else if (shape === 1) {
-          g.rect(-r, -r, SHAPE_SIZE, SHAPE_SIZE);
-        } else {
-          g.moveTo(0, -r);
-          g.lineTo(r, r);
-          g.lineTo(-r, r);
-          g.closePath();
+
+        switch (shape) {
+          case 0: {
+            // Tròn
+            g.arc(0, 0, r, 0, Math.PI * 2);
+            g.fill();
+            break;
+          }
+          case 1: {
+            // Vuông bo góc
+            const rad = 6;
+            if (typeof g.roundRect === "function") {
+              g.roundRect(-r, -r, SHAPE_SIZE, SHAPE_SIZE, rad);
+            } else {
+              g.rect(-r, -r, SHAPE_SIZE, SHAPE_SIZE);
+            }
+            g.fill();
+            break;
+          }
+          case 2: {
+            // Tam giác
+            g.moveTo(0, -r);
+            g.lineTo(r, r);
+            g.lineTo(-r, r);
+            g.closePath();
+            g.fill();
+            break;
+          }
+          case 3: {
+            // Viên con nhộng (Pill)
+            const pw = SHAPE_SIZE * 1.15;
+            const ph = SHAPE_SIZE * 0.58;
+            const pr = ph / 2;
+            if (typeof g.roundRect === "function") {
+              g.roundRect(-pw / 2, -ph / 2, pw, ph, pr);
+            } else {
+              g.rect(-pw / 2, -ph / 2, pw, ph);
+            }
+            g.fill();
+            break;
+          }
+          case 4: {
+            // Vành khuyên (Donut)
+            g.arc(0, 0, r, 0, Math.PI * 2, false);
+            g.arc(0, 0, r * 0.45, 0, Math.PI * 2, true);
+            g.fill("evenodd");
+            break;
+          }
+          case 5: {
+            // Dấu cộng (Plus / Cross)
+            const bw = SHAPE_SIZE * 0.28;
+            g.rect(-r, -bw / 2, SHAPE_SIZE, bw);
+            g.rect(-bw / 2, -r, bw, SHAPE_SIZE);
+            g.fill();
+            break;
+          }
+          default: {
+            g.arc(0, 0, r, 0, Math.PI * 2);
+            g.fill();
+          }
         }
-        g.fill();
       }
       sprites.set(key, off);
       return off;
     };
 
-    /** anywhere: rải khắp khung (lúc đầu); ngược lại sinh ở mép, ngoài tầm nhìn. */
-    const spawn = (anywhere: boolean): Particle => ({
-      x: Math.random() * width,
-      y: anywhere ? Math.random() * height : gravity < 0 ? height + 30 : -30,
-      vx: (Math.random() - 0.5) * 1.4 * speedFactor,
-      vy: (Math.random() - 0.5) * 1.4 * speedFactor,
-      size: 6 + Math.random() * 11,
-      depth: 0.6 + Math.random() * 0.7,
-      rotation: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 0.035,
-      phase: Math.random() * Math.PI * 2,
-      sprite: sprite(
-        palette[Math.floor(Math.random() * palette.length)],
-        Math.floor(Math.random() * 3),
-      ),
-    });
+    /**
+     * "anywhere": rải khắp khung (lúc đầu). "top"/"bottom": sinh ngay ngoài mép
+     * đó, vận tốc dọc hướng VÀO khung để hạt mới đi vào tầm nhìn chứ không lập
+     * tức văng ra lại mép vừa sinh.
+     */
+    const spawn = (at: "anywhere" | "top" | "bottom"): Particle => {
+      const vy = (Math.random() - 0.5) * 1.4 * speedFactor;
+      return {
+        x: Math.random() * width,
+        y: at === "anywhere" ? Math.random() * height : at === "top" ? -30 : height + 30,
+        vx: (Math.random() - 0.5) * 1.4 * speedFactor,
+        vy: at === "anywhere" ? vy : at === "top" ? Math.abs(vy) : -Math.abs(vy),
+        size: 6 + Math.random() * 11,
+        depth: 0.6 + Math.random() * 0.7,
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.035,
+        phase: Math.random() * Math.PI * 2,
+        sprite: sprite(
+          palette[Math.floor(Math.random() * palette.length)],
+          Math.floor(Math.random() * 6), // 6 hình khối đa dạng
+        ),
+      };
+    };
+
+    const triggerShockwave = (clientX: number, clientY: number) => {
+      // Vòng lặp đang dừng (bấm Pause, hoặc header ngoài khung nhìn) thì bỏ qua:
+      // nếu vẫn xếp hàng, lúc chạy lại mọi sóng dồn lại sẽ bung ra cùng lúc.
+      if (!enableShockwave || !frame) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      if (x >= -40 && x <= width + 40 && y >= -40 && y <= height + 40) {
+        if (shockwaves.length >= MAX_SHOCKWAVES) shockwaves.shift();
+        shockwaves.push({
+          x,
+          y,
+          radius: 0,
+          maxRadius: Math.max(width, height) * 0.45,
+          strength: 7.5,
+        });
+      }
+    };
 
     const step = (p: Particle, dt: number, time: number) => {
       // Hệ số 0.2: với ma sát 0.96/khung, hạt trôi đều khoảng 4-20 px/giây
       // (tuỳ độ sâu), tức mất chừng 10-40 giây để đi hết chiều cao header.
-      p.vy += gravity * 0.2 * p.depth * dt;
+      // Cộng thêm độ nghiêng cảm ứng (tilt) trên điện thoại nếu có.
+      p.vx += tiltX * p.depth * dt;
+      p.vy += (gravity * 0.2 + tiltY) * p.depth * dt;
 
+      // Lực đẩy dạt ra khi di chuột / chạm tay
       const dx = p.x - pointerX;
       const dy = p.y - pointerY;
       const dist = Math.hypot(dx, dy);
@@ -173,6 +288,26 @@ export function AntigravityCanvas({
         const push = ((POINTER_RADIUS - dist) / POINTER_RADIUS) * 3.5 * dt;
         p.vx += (dx / dist) * push;
         p.vy += (dy / dist) * push;
+      }
+
+      // Lực đẩy từ các sóng kích nổ (Shockwave)
+      for (let i = 0; i < shockwaves.length; i++) {
+        const sw = shockwaves[i];
+        const swDx = p.x - sw.x;
+        const swDy = p.y - sw.y;
+        const swDist = Math.hypot(swDx, swDy);
+        const thickness = 40;
+        const delta = Math.abs(swDist - sw.radius);
+
+        if (delta < thickness && swDist > 0) {
+          const force =
+            (1 - delta / thickness) *
+            (1 - sw.radius / sw.maxRadius) *
+            sw.strength *
+            dt;
+          p.vx += (swDx / swDist) * force;
+          p.vy += (swDy / swDist) * force;
+        }
       }
 
       const drag = Math.pow(FRICTION, dt);
@@ -185,7 +320,12 @@ export function AntigravityCanvas({
 
       if (p.x < -30) p.x = width + 30;
       else if (p.x > width + 30) p.x = -30;
-      if (gravity < 0 ? p.y < -40 : p.y > height + 40) Object.assign(p, spawn(false));
+      // Chiều dọc cũng quay vòng ở CẢ HAI mép. Trước đây chỉ sinh lại theo dấu
+      // của prop `gravity`, nên khi độ nghiêng máy hay sóng xung kích đẩy hạt
+      // xuống dưới thì hạt rơi khỏi mép dưới và mất hẳn (đo được: header trống
+      // sau khoảng 21 giây cầm máy đứng thẳng).
+      if (p.y < -40) Object.assign(p, spawn("bottom"));
+      else if (p.y > height + 40) Object.assign(p, spawn("top"));
     };
 
     const draw = () => {
@@ -204,6 +344,15 @@ export function AntigravityCanvas({
       // Tab bị ẩn lâu rồi quay lại: chặn bước nhảy tối đa 3 khung.
       const dt = lastTime ? Math.min((time - lastTime) / FRAME_MS, 3) : 1;
       lastTime = time;
+
+      // Cập nhật sóng kích nổ
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        shockwaves[i].radius += 6.0 * dt;
+        if (shockwaves[i].radius >= shockwaves[i].maxRadius) {
+          shockwaves.splice(i, 1);
+        }
+      }
+
       for (const p of particles) step(p, dt, time);
       draw();
       frame = requestAnimationFrame(tick);
@@ -217,6 +366,8 @@ export function AntigravityCanvas({
       } else if (!run && frame) {
         cancelAnimationFrame(frame);
         frame = 0;
+        // Sóng đang lan dở thì huỷ luôn, kể cả sóng sinh ra từ chính cú bấm Pause.
+        shockwaves.length = 0;
       }
     };
     syncRef.current = sync;
@@ -228,7 +379,7 @@ export function AntigravityCanvas({
       if (particles.length === 0) {
         width = rect.width;
         height = rect.height;
-        particles = Array.from({ length: particleCount }, () => spawn(true));
+        particles = Array.from({ length: particleCount }, () => spawn("anywhere"));
       } else {
         for (const p of particles) {
           p.x *= rect.width / width;
@@ -255,9 +406,29 @@ export function AntigravityCanvas({
       pointerX = -9999;
       pointerY = -9999;
     };
+
+    const onPointerDown = (e: PointerEvent) => {
+      triggerShockwave(e.clientX, e.clientY);
+    };
+
+    const onDeviceOrientation = (e: DeviceOrientationEvent) => {
+      if (e.gamma !== null && e.beta !== null) {
+        // gamma nghiêng trái/phải [-90, 90]
+        // beta nghiêng trước/sau [-180, 180]
+        tiltX = Math.max(-1, Math.min(1, e.gamma / 35)) * 0.03;
+        tiltY = Math.max(-1, Math.min(1, (e.beta - 45) / 45)) * 0.02;
+      }
+    };
+
     if (!reducedMotion) {
       window.addEventListener("pointermove", onPointerMove, { passive: true });
+      window.addEventListener("pointerdown", onPointerDown, { passive: true });
       document.documentElement.addEventListener("pointerleave", onPointerLeave);
+      document.documentElement.addEventListener("pointercancel", onPointerLeave);
+
+      if (enableGyro && "DeviceOrientationEvent" in window) {
+        window.addEventListener("deviceorientation", onDeviceOrientation, { passive: true });
+      }
     }
 
     const resizeObserver = new ResizeObserver(resize);
@@ -276,9 +447,22 @@ export function AntigravityCanvas({
       resizeObserver.disconnect();
       visibility.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerdown", onPointerDown);
       document.documentElement.removeEventListener("pointerleave", onPointerLeave);
+      document.documentElement.removeEventListener("pointercancel", onPointerLeave);
+      if (enableGyro && "DeviceOrientationEvent" in window) {
+        window.removeEventListener("deviceorientation", onDeviceOrientation);
+      }
     };
-  }, [colorKey, particleCount, speedFactor, gravity, reducedMotion]);
+  }, [
+    colorKey,
+    particleCount,
+    speedFactor,
+    gravity,
+    reducedMotion,
+    enableShockwave,
+    enableGyro,
+  ]);
 
   return (
     <canvas
