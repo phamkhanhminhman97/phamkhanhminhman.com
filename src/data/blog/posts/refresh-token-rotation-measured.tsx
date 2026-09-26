@@ -8,6 +8,10 @@ import type { BlogPost } from "../types";
  * Server thử nghiệm: RT 32 byte ngẫu nhiên, lưu SHA-256 trong Postgres kèm parent_id
  * và family_id; AT là JWT HS256 sống 15 phút (5 giây ở phần cần AT hết hạn).
  * Số lần chạy ghi trong từng bảng. Ghi chú gốc: tipjs-main/jwt/JWT.md.
+ * Review 26/09: đo lại toàn bộ lần hai, khớp lần một; riêng dải độ lệch của bản
+ * đọc-rồi-ghi dao động nên bài gộp hai lần chạy, và AT của kẻ trộm sống 4,4–5,0 s.
+ * Đoạn code client ở mục 6 chạy nguyên văn trong Chromium (trang 3 lời gọi, N=100;
+ * hai tab, N=30). Lưu successor sau commit cũng không lỗi (600 lượt, trễ kho 0–3 ms).
  */
 
 const th = "p-3 font-sans font-bold text-[10px] uppercase tracking-wider text-zinc-500";
@@ -48,7 +52,7 @@ const post: BlogPost = {
   date: "2026-09-26",
   category: "Auth / Concurrency",
   title: "Refresh token rotation caught the thief. It also caught my second tab.",
-  readTime: "9 min read",
+  readTime: "10 min read",
   description:
     "A three-line note on refresh token rotation with reuse detection, built and measured: it catches a stolen token, but two tabs refreshing at once logged the real user out 30 times out of 30, a page firing parallel requests 200 out of 200, and a lost response 50 out of 50. A naive check-then-write server hid the parallel case by minting two tokens 199 times out of 200. A grace window removes the logouts, but only one of the two ways to build it still catches a thief.",
   content: () => (
@@ -81,9 +85,10 @@ const post: BlogPost = {
         <p>
           The server runs on Node.js 22 with PostgreSQL 18.6 in Docker. Refresh tokens are 32
           random bytes, stored as SHA-256 hashes with a pointer to the token they replaced. Access
-          tokens are HS256 JWTs that live 15 minutes, or 5 seconds in the tests that needed one to
-          expire. The browser tests keep the refresh token in an HttpOnly cookie and ran in
-          Chromium 153. Each table says how many times its scenario ran.
+          tokens are HS256 JWTs that live 15 minutes; the page-load tests start with one that has
+          already expired, and the theft test uses a 5-second one. The browser tests keep the
+          refresh token in an HttpOnly cookie and ran in Chromium 153. The results held when I
+          repeated them in a second session; each table says how many times per run.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">
@@ -97,7 +102,7 @@ const post: BlogPost = {
 {`attacker  POST /auth/refresh   RT0   200  gets RT1 and an access token
 user      POST /auth/refresh   RT0   401  reuse: every refresh token revoked
 attacker  POST /auth/refresh   RT1   401  revoked
-attacker  GET  /api/me         AT    200  ...and 200 for another 4.9 seconds`}
+attacker  GET  /api/me         AT    200  ...and 200 until it expires`}
         </pre>
         <p>
           In the other order, user first, the attacker&apos;s RT0 is the reused one and gets a
@@ -107,11 +112,12 @@ attacker  GET  /api/me         AT    200  ...and 200 for another 4.9 seconds`}
         <p>
           The note leaves out two things. Revoking refresh tokens does not recall an access token
           that has already been issued: a JWT is checked by its signature and expiry, so the
-          attacker&apos;s kept working until it expired, 4.9 seconds later with a 5-second token,
-          up to 15 minutes with a real one. And detection needs the real user to come back. With
-          the user away, the attacker refreshed 96 times in a row, a day&apos;s worth of 15-minute
-          tokens, without a single error; the reuse was noticed only when the user&apos;s browser
-          presented RT0 again. Rotation limits a theft to the user&apos;s absence; when the user
+          attacker&apos;s kept working until it expired, within five seconds with a 5-second
+          token, up to 15 minutes with a real one. And detection needs the real user to come back.
+          With the user away, the attacker refreshed 96 times in a row, as many refreshes as a day
+          of 15-minute tokens needs, without a single error; the reuse was noticed only when the
+          user&apos;s browser presented RT0 again. Rotation limits a theft to the user&apos;s
+          absence; when the user
           is away for a week, a maximum lifetime for the whole chain is what limits it further.
         </p>
 
@@ -177,9 +183,9 @@ attacker  GET  /api/me         AT    200  ...and 200 for another 4.9 seconds`}
           4. The race in the check itself
         </h3>
         <p>
-          My first server followed the note in order: read the token, check it has not been used,
-          issue the next one, mark the old one used. Three statements, no lock. With two refreshes
-          at once it did something I did not expect: almost nobody was logged out.
+          Written the obvious way, the server follows the note in order: read the token, check it
+          has not been used, issue the next one, mark the old one used. Three statements, no lock.
+          With two refreshes at once, that version almost never logged anybody out.
         </p>
         <Table
           head={["Server", "2 refreshes at once", "logged out", "two live tokens"]}
@@ -192,8 +198,9 @@ attacker  GET  /api/me         AT    200  ...and 200 for another 4.9 seconds`}
           Both requests read &ldquo;unused&rdquo; before either wrote &ldquo;used&rdquo;, so both
           got a new token. The single-use token was used twice, the family now had two valid
           refresh tokens, and the one the page did not keep stays valid, held by no one, until it
-          expires. With the 100 ms response delay, gaps of 0 to 1 ms produced two tokens every
-          time, 2 to 3 ms a mix, and 5 to 50 ms a logout every time. The race covered only a few
+          expires. With the 100 ms response delay and both runs added together, gaps of 0 to 2 ms
+          produced two tokens 114 times in 120, a 3 ms gap about half the time, and from 5 ms on
+          the result was almost always a logout, every time from 10 ms. The race covered only a few
           milliseconds, the time between the SELECT and the UPDATE, but on my machine that is
           where the parallel requests of one page landed.
         </p>
@@ -207,7 +214,8 @@ RETURNING id, user_id, family_id;
 -- no row:  unknown, revoked or already used; find out which`}
         </pre>
         <p>
-          A second UPDATE on the same row waits for the first to commit, re-checks{" "}
+          At PostgreSQL&apos;s default Read Committed level, a second UPDATE on the same row waits
+          for the first to commit, re-checks{" "}
           <code>used_at IS NULL</code>, and matches nothing. That makes the token genuinely
           single-use, and it turns the collisions from section 2 into logouts 200 times out of
           200. The buggy version had been hiding the problem. A correct implementation of the note
@@ -230,24 +238,30 @@ RETURNING id, user_id, family_id;
           rows={[
             ["nothing (no window)", "200 / 200", "50 / 50", "none", "caught"],
             ["return the successor", <Good key="a">0 / 200</Good>, <Good key="b">0 / 50</Good>, <Good key="c">none</Good>, <Good key="d">caught at its next refresh</Good>],
-            ["issue another token", "0 / 200", "0 / 50", "one per collision", "not caught in 8 rounds"],
+            ["issue another token", "0 / 200", "0 / 50", "two per 3-call page", "not caught in 8 rounds"],
           ]}
         />
         <p>
           Both remove the logouts. Only one keeps the detection. Returning the successor means a
-          thief who replays RT0 in time receives the same RT1 the user holds; once the window has
-          closed, whichever of them uses RT1 second is caught, and in my run that was the
-          attacker&apos;s next refresh. Issuing another token forks the family: the user carries
+          thief who replays RT0 in time receives the same RT1 the user holds, and a working access
+          token; once the window has closed, whichever of them uses RT1 second is caught. In my
+          runs that was the attacker&apos;s next refresh, and as in section 1 the user had to log
+          in again as well. Issuing another token forks the family: the user carries
           on along one chain, the thief along another, and neither ever presents a used token
           again. After eight more rounds of refreshes on both sides, the family still had two
           active tokens and no reuse had been detected. The same fork happened on every page load
-          with parallel calls, and each one left behind a valid refresh token that nobody holds.
+          with parallel calls: each three-call page left three active refresh tokens, two of them
+          held by no one.
         </p>
         <p>
-          Returning the successor means keeping it for the length of the window, in Redis or
-          wherever you keep short-lived state, and saving it before the transaction commits. The
-          second request is waiting on the first one&apos;s row lock and runs the moment it
-          commits; a successor saved after the commit may not be there yet.
+          That fork is what happens when nothing ties the extra token to the rest of the family.
+          Auth0&apos;s documentation says a new token is issued during its overlap period and that
+          only the previous token can be reused, but not how that new token is linked to the
+          others; I did not test Auth0. Returning the successor means keeping it for the length of
+          the window, in Redis or wherever you keep short-lived state. I wrote it before committing
+          the rotation; writing it just after the commit worked as well in 600 page loads, with up
+          to 3 ms of simulated store latency, because the waiting request has two more queries to
+          run before it looks.
         </p>
 
         <h3 className="font-sans font-bold text-lg text-black pt-4">
@@ -269,16 +283,18 @@ function refreshTokens() {
     .request("refresh-token", async () => {
       const res = await fetch("/auth/refresh", { method: "POST" });
       if (!res.ok) throw new Error("session ended");
+      return (await res.json()).access;
     })
     .finally(() => { inflight = null; });
   return inflight;
 }`}
         </pre>
         <p>
-          The shared promise took the three-call page to 0 logouts in 200, and the lock took the
-          two tabs to 0 in 30. The second tab still refreshes, but only after the first has
-          finished and the browser has stored the new cookie, so it sends RT1 instead of RT0. The
-          client fix cannot help with a lost response, though; only the server&apos;s window can.
+          Every caller that got a 401 awaits the same promise and retries with the access token it
+          returns. Run as written in Chromium, this function took a three-call page to 0 logouts
+          in 100 and two tabs to 0 in 30. The second tab still refreshes, but only after the first
+          has finished and the browser has stored the new cookie, so it sends RT1 instead of RT0.
+          The client fix cannot help with a lost response, though; only the server&apos;s window can.
           You need both. Workers on a server have the same problem and a different fix, a lock per
           shop, which I wrote about in the{" "}
           <Link href="/blog/shopee-oauth-token-lifecycle-at-scale" className={link}>Shopee token post</Link>.
@@ -300,8 +316,9 @@ function refreshTokens() {
           ]}
         />
         <p>
-          RFC 9700 asks for the second: revoke the active refresh token of that grant. A family id
-          on each token, set at login and copied on every rotation, is enough to find it.
+          RFC 9700 describes the second: the server revokes the active refresh token of the grant
+          the reused one belongs to. A family id on each token, set at login and copied on every
+          rotation, is enough to find it.
           Narrowing the scope does not stop the logout on device 1; that takes sections 5 and 6.
         </p>
 
@@ -318,8 +335,8 @@ function refreshTokens() {
           </li>
           <li>
             <strong>Give the previous token a short window, and inside it return the token you
-            already issued.</strong> Issuing another one forks the family and hides a thief for
-            good.
+            already issued.</strong> Issuing another one, with nothing tying it to the family,
+            forked it and hid the thief for eight rounds.
           </li>
           <li>
             <strong>Refresh once per page, and once per origin at a time.</strong> A shared
