@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 import { SITE_URL } from "@/lib/site";
 import { profile } from "@/data/profile";
 

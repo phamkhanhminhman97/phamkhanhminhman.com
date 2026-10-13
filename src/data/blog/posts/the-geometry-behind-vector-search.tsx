@@ -1,5 +1,7 @@
 import React from "react";
 import type { BlogPost } from "../types";
+import { BlockMath, InlineMath } from "@/components/Math";
+import { VectorProjectionDiagram } from "@/components/VectorProjectionDiagram";
 
 const post: BlogPost = {
   slug: "the-geometry-behind-vector-search",
@@ -53,56 +55,110 @@ const post: BlogPost = {
         The Euclidean length (L2 norm) is derived directly from the Pythagorean theorem:
       </p>
 
-      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`||a|| = sqrt(a_1^2 + a_2^2 + ... + a_d^2) = sqrt(dot(a, a))`}
-      </pre>
+      <BlockMath math="\|\mathbf{a}\| = \sqrt{a_1^2 + a_2^2 + \dots + a_d^2} = \sqrt{\mathbf{a} \cdot \mathbf{a}}" />
 
       <p>
-        When you compute the dot product between two vectors <code>u</code>{" "}and <code>v</code>:
+        When you compute the dot product between two vectors <InlineMath math="\mathbf{a}" />{" "}and{" "}
+        <InlineMath math="\mathbf{b}" />:
       </p>
 
-      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`u · v = u_1*v_1 + u_2*v_2 + ... + u_d*v_d = ||u|| * ||v|| * cos(theta)`}
-      </pre>
+      <BlockMath math="\mathbf{a} \cdot \mathbf{b} = \sum_{i=1}^d a_i b_i = \|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta" />
 
       <p>
         The algebraic definition (sum of coordinate-wise products) equals the geometric formulation
-        (lengths multiplied by the cosine of the enclosed angle <code>theta</code>).
+        (lengths multiplied by the cosine of the enclosed angle <InlineMath math="\theta" />).
         Geometrically, this represents a <strong>projection shadow</strong>:
       </p>
 
       <blockquote className="border-l-2 border-red-700 pl-4 text-zinc-700 italic my-4">
-        Projecting vector <code>a</code>{" "}onto vector <code>b</code>{" "}is equivalent to dropping a perpendicular
-        light source onto the line spanning <code>b</code>, and measuring the signed length of the shadow.
+        Projecting vector <InlineMath math="\mathbf{a}" />{" "}onto vector{" "}
+        <InlineMath math="\mathbf{b}" />{" "}is equivalent to dropping a perpendicular
+        light source onto the line spanning <InlineMath math="\mathbf{b}" />, and measuring
+        the signed length of the shadow.
       </blockquote>
 
       <p>
-        Dividing the dot product by <code>||b||</code> isolates the scalar length of the shadow:
+        Dividing the dot product by <InlineMath math="\|\mathbf{b}\|" />{" "}isolates the scalar length of the shadow:
       </p>
 
-      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`scalar_shadow_length = (a · b) / ||b|| = ||a|| * cos(theta)`}
-      </pre>
+      <BlockMath math="\text{shadow\_length} = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{b}\|} = \|\mathbf{a}\|\cos\theta" />
 
       <p>
-        To obtain the shadow as a concrete vector in the exact direction of <code>b</code>,
-        we multiply that length by the unit vector <code>b / ||b||</code>:
+        To obtain the shadow as a concrete vector in the exact direction of <InlineMath math="\mathbf{b}" />,
+        we multiply that length by the unit direction vector{" "}
+        <InlineMath math="\hat{\mathbf{b}} = \frac{\mathbf{b}}{\|\mathbf{b}\|}" />:
       </p>
 
-      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`proj_b(a) = ((a · b) / ||b||) * (b / ||b||) = ( (a · b) / (b · b) ) * b`}
-      </pre>
+      <BlockMath math="\operatorname{proj}_{\mathbf{b}}(\mathbf{a}) = \left(\frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{b}\|}\right)\left(\frac{\mathbf{b}}{\|\mathbf{b}\|}\right) = \left(\frac{\mathbf{a} \cdot \mathbf{b}}{\mathbf{b} \cdot \mathbf{b}}\right)\mathbf{b}" />
 
       <p>
-        Notice why the denominator is <code>b · b = ||b||^2</code>: division by <code>||b||</code>{" "}occurs twice—once
-        to isolate the shadow length, and once to normalize <code>b</code>{" "}into a unit vector.
+        Notice why the denominator is <InlineMath math="\mathbf{b} \cdot \mathbf{b} = \|\mathbf{b}\|^2" />:
+        division by <InlineMath math="\|\mathbf{b}\|" />{" "}occurs twice—once
+        to isolate the shadow length, and once to normalize <InlineMath math="\mathbf{b}" />{" "}into
+        a unit direction vector.
+      </p>
+
+      {/* Interactive Geometric Visualization */}
+      <VectorProjectionDiagram />
+
+      <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-sans space-y-2 my-4">
+        <p className="font-bold text-zinc-900 uppercase tracking-wide text-[11px]">
+          Concrete Calculation: <InlineMath math="\mathbf{a} = (3, 4)" />{" "}and{" "}
+          <InlineMath math="\mathbf{b} = (4, 3)" />
+        </p>
+        <ul className="space-y-1.5 text-zinc-700">
+          <li>
+            • <strong>Magnitudes:</strong>{" "}
+            <InlineMath math="\|\mathbf{a}\| = \sqrt{3^2 + 4^2} = 5.0" />
+            {", "}
+            <InlineMath math="\|\mathbf{b}\| = \sqrt{4^2 + 3^2} = 5.0" />
+          </li>
+          <li>
+            • <strong>Dot Product:</strong>{" "}
+            <InlineMath math="\mathbf{a} \cdot \mathbf{b} = 3(4) + 4(3) = 24.0" />
+          </li>
+          <li>
+            • <strong>Cosine Similarity:</strong>{" "}
+            <InlineMath math="\cos\theta = \frac{24.0}{5.0 \times 5.0} = 0.96 \implies \theta \approx 16.3^\circ" />
+          </li>
+          <li>
+            • <strong>Shadow Length:</strong>{" "}
+            <InlineMath math="\frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{b}\|} = \frac{24.0}{5.0} = 4.80" />
+            {" (Cross-check: "}
+            <InlineMath math="\|\mathbf{a}\|\cos\theta = 5.0 \times 0.96 = 4.80" />
+            {")"}
+          </li>
+          <li>
+            • <strong>Projected Vector:</strong>{" "}
+            <InlineMath math="\operatorname{proj}_{\mathbf{b}}(\mathbf{a}) = \frac{24}{25}(4, 3) = (3.84, 2.88)" />
+          </li>
+          <li>
+            • <strong>Residual Vector:</strong>{" "}
+            <InlineMath math="\mathbf{r} = \mathbf{a} - \operatorname{proj}_{\mathbf{b}}(\mathbf{a}) = (3, 4) - (3.84, 2.88) = (-0.84, 1.12)" />
+          </li>
+          <li>
+            • <strong>Orthogonality Verification:</strong>{" "}
+            <InlineMath math="\mathbf{r} \cdot \mathbf{b} = (-0.84)(4) + (1.12)(3) = -3.36 + 3.36 = 0.00" />
+          </li>
+        </ul>
+      </div>
+
+      <p>
+        When two vectors are orthogonal (such as <InlineMath math="\mathbf{a} = (3, 4)" />{" "}and{" "}
+        <InlineMath math="\mathbf{c} = (-4, 3)" />, where{" "}
+        <InlineMath math="\mathbf{a} \cdot \mathbf{c} = -12 + 12 = 0" />), the projection produces{" "}
+        <InlineMath math="\operatorname{proj}_{\mathbf{c}}(\mathbf{a}) = (0, 0)" />.
+        The shadow length is exactly zero. In geometric information theory,{" "}
+        <strong>orthogonality means zero shared information</strong>.
       </p>
 
       <p>
-        When two vectors are orthogonal (<code>a · b = 0</code>), the shadow length is exactly zero.
-        In information theory and retrieval, <strong>orthogonality means zero shared information</strong>.
-        Furthermore, the residual vector <code>r = a - proj_b(a)</code>{" "}is guaranteed to be strictly orthogonal
-        to <code>b</code>: <code>dot(a - proj_b(a), b) = 0</code>.
+        This geometric property explains why semantic search works in high dimensions. In 2D, two random vectors
+        have broad cosine dispersion (standard deviation <InlineMath math="\approx 0.71" />). However, in 768 dimensions, the concentration of
+        measure dictates that random vectors have a standard deviation of approximately{" "}
+        <InlineMath math="1 / \sqrt{768} \approx 0.0361" />. Almost all random pairs in 768D are naturally near-orthogonal
+        (cosine between <InlineMath math="-0.07" />{" "}and <InlineMath math="+0.07" />). Consequently, two dense embeddings sharing a cosine above 0.70 is an
+        astronomical statistical anomaly unless they share real semantic alignment.
       </p>
 
       <h2 className="font-sans font-bold text-lg text-black pt-4">
@@ -115,13 +171,13 @@ const post: BlogPost = {
       </p>
 
       <ul className="list-disc pl-5 space-y-1 text-sm">
-        <li>Query <code>q = (1, 0)</code>{" "}(short search for &quot;database&quot;)</li>
-        <li>Document 1 <code>d1 = (1, 0)</code>{" "}(short article matching &quot;database&quot;)</li>
-        <li>Document 2 <code>d2 = (10, 0)</code>{" "}(long article mentioning &quot;database&quot; ten times)</li>
+        <li>Query <InlineMath math="\mathbf{q} = (1, 0)" />{" "}(short search for &quot;database&quot;)</li>
+        <li>Document 1 <InlineMath math="\mathbf{d}_1 = (1, 0)" />{" "}(short article matching &quot;database&quot;)</li>
+        <li>Document 2 <InlineMath math="\mathbf{d}_2 = (10, 0)" />{" "}(long article mentioning &quot;database&quot; ten times)</li>
       </ul>
 
       <p>
-        Under Euclidean distance, <code>||q - d2|| = 9.0</code>{" "}appears distant, penalizing the longer article
+        Under Euclidean distance, <InlineMath math="\|\mathbf{q} - \mathbf{d}_2\| = 9.0" />{" "}appears distant, penalizing the longer article
         solely due to word repetition. Meanwhile, cosine similarity yields <code>1.0</code>{" "}for both, preserving
         semantic alignment regardless of length.
       </p>
@@ -132,45 +188,54 @@ const post: BlogPost = {
         and cosine similarity are not different metrics—they are <strong>mathematically monotonic transforms</strong>:
       </p>
 
-      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`||u - v||^2 = (u - v) · (u - v)
-            = ||u||^2 + ||v||^2 - 2 * (u · v)
-            = 1.0 + 1.0 - 2 * cos(u, v)
-            = 2 - 2 * cos(u, v)`}
-      </pre>
+      <BlockMath
+        math={`\\begin{aligned}
+\\|\\mathbf{u} - \\mathbf{v}\\|^2 &= (\\mathbf{u} - \\mathbf{v}) \\cdot (\\mathbf{u} - \\mathbf{v}) \\\\
+&= \\|\\mathbf{u}\\|^2 + \\|\\mathbf{v}\\|^2 - 2(\\mathbf{u} \\cdot \\mathbf{v}) \\\\
+&= 1.0 + 1.0 - 2\\cos(\\mathbf{u}, \\mathbf{v}) \\\\
+&= 2 - 2\\cos(\\mathbf{u}, \\mathbf{v})
+\\end{aligned}`}
+      />
 
       <p>
-        Because <code>||u - v|| = sqrt(2 - 2 * cos(u, v))</code>, minimizing Euclidean distance is strictly
-        equivalent to maximizing cosine similarity:
+        Taking the square root yields the exact distance relation:
+      </p>
+
+      <BlockMath math="\|\mathbf{u} - \mathbf{v}\| = \sqrt{2 - 2\cos(\mathbf{u}, \mathbf{v})}" />
+
+      <p>
+        Because <InlineMath math="f(x) = \sqrt{2 - 2x}" />{" "}is strictly monotonically decreasing for{" "}
+        <InlineMath math="x \in [-1, 1]" />, minimizing Euclidean distance is strictly equivalent to maximizing
+        cosine similarity:
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs font-mono border border-zinc-200 my-2">
           <thead className="bg-zinc-100 text-zinc-700">
             <tr>
-              <th className="p-2 border border-zinc-200 text-left">Angle theta</th>
-              <th className="p-2 border border-zinc-200 text-right">Cosine Similarity</th>
-              <th className="p-2 border border-zinc-200 text-right">Euclidean Distance ||u - v||</th>
+              <th className="p-2 border border-zinc-200 text-left">Angle <InlineMath math="\theta" /></th>
+              <th className="p-2 border border-zinc-200 text-right">Cosine Similarity <InlineMath math="\cos\theta" /></th>
+              <th className="p-2 border border-zinc-200 text-right">Euclidean Distance <InlineMath math="\|\mathbf{u} - \mathbf{v}\|" /></th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="p-2 border border-zinc-200">0° (identical)</td>
+              <td className="p-2 border border-zinc-200"><InlineMath math="0^\circ" />{" "}(identical)</td>
               <td className="p-2 border border-zinc-200 text-right font-bold text-green-700">1.0000</td>
               <td className="p-2 border border-zinc-200 text-right font-bold text-green-700">0.0000</td>
             </tr>
             <tr>
-              <td className="p-2 border border-zinc-200">60°</td>
+              <td className="p-2 border border-zinc-200"><InlineMath math="60^\circ" /></td>
               <td className="p-2 border border-zinc-200 text-right">0.5000</td>
               <td className="p-2 border border-zinc-200 text-right">1.0000</td>
             </tr>
             <tr>
-              <td className="p-2 border border-zinc-200">90° (orthogonal)</td>
+              <td className="p-2 border border-zinc-200"><InlineMath math="90^\circ" />{" "}(orthogonal)</td>
               <td className="p-2 border border-zinc-200 text-right text-zinc-600">0.0000</td>
-              <td className="p-2 border border-zinc-200 text-right text-zinc-600">1.4142 (sqrt(2))</td>
+              <td className="p-2 border border-zinc-200 text-right text-zinc-600"><InlineMath math="\sqrt{2} \approx 1.4142" /></td>
             </tr>
             <tr>
-              <td className="p-2 border border-zinc-200">180° (opposite)</td>
+              <td className="p-2 border border-zinc-200"><InlineMath math="180^\circ" />{" "}(opposite)</td>
               <td className="p-2 border border-zinc-200 text-right text-red-700">-1.0000</td>
               <td className="p-2 border border-zinc-200 text-right text-red-700">2.0000</td>
             </tr>
@@ -217,21 +282,48 @@ const post: BlogPost = {
         entirely, significantly improving throughput on exact scans and index traversals.
       </p>
 
+      <p>
+        Here is the standard schema and index pattern in PostgreSQL using <code>vector_ip_ops</code>:
+      </p>
+
+      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
+{`-- 1. Create table with dense 768-dimensional embeddings
+CREATE TABLE documents (
+  id BIGSERIAL PRIMARY KEY,
+  content TEXT NOT NULL,
+  embedding vector(768) NOT NULL
+);
+
+-- 2. Build HNSW index using inner product on pre-normalized vectors
+CREATE INDEX documents_embedding_hnsw_idx 
+ON documents USING hnsw (embedding vector_ip_ops);
+
+-- 3. Top-10 semantic retrieval using negative inner product (<#>)
+-- Multiplying by -1.0 restores the true positive cosine score
+SELECT 
+  id, 
+  content, 
+  (embedding <#> $1) * -1.0 AS cosine_similarity
+FROM documents
+ORDER BY embedding <#> $1 ASC
+LIMIT 10;`}
+      </pre>
+
       <h2 className="font-sans font-bold text-lg text-black pt-4">
         4. The Anisotropy Trap: When Cosine Always Returns 0.90
       </h2>
 
       <p>
         In <em>Mathematics for Machine Learning</em> (§6.4.6, p. 196), inner products are mapped directly to statistics:
-        for random variables with zero expectation, the inner product <code>&lang;X, Y&rang; := Cov[X, Y]</code>{" "}satisfies
+        for random variables with zero expectation, the inner product <InlineMath math="\langle X, Y \rangle := \text{Cov}[X, Y]" />{" "}satisfies
         all inner product axioms. Under zero-mean centering:
       </p>
 
       <ul className="list-disc pl-5 space-y-1 text-sm">
-        <li>Vector norm <code>||a||</code>{" "}corresponds to standard deviation <code>sigma</code></li>
-        <li>Cosine similarity corresponds to Pearson correlation <code>corr(X, Y)</code></li>
-        <li>Orthogonality corresponds to zero correlation (uncorrelated)</li>
-        <li>Pythagorean theorem <code>||a + b||^2 = ||a||^2 + ||b||^2</code>{" "}corresponds to variance summation <code>V[X+Y] = V[X] + V[Y]</code></li>
+        <li>Vector norm <InlineMath math="\|\mathbf{a}\|" />{" "}corresponds to standard deviation <InlineMath math="\sigma" /></li>
+        <li>Cosine similarity corresponds to Pearson correlation <InlineMath math="\text{corr}(X, Y)" /></li>
+        <li>Orthogonality corresponds to zero covariance (<InlineMath math="\text{Cov}[X, Y] = 0" />)</li>
+        <li>Pythagorean theorem <InlineMath math="\|\mathbf{a} + \mathbf{b}\|^2 = \|\mathbf{a}\|^2 + \|\mathbf{b}\|^2" />{" "}corresponds to variance summation <InlineMath math="\mathbb{V}[X+Y] = \mathbb{V}[X] + \mathbb{V}[Y]" /></li>
       </ul>
 
       <p>
@@ -346,17 +438,18 @@ print("All geometric assertions verified successfully.")`}
 
       <ul className="list-disc pl-5 space-y-2 text-sm">
         <li>
-          <strong>Dot product is a physical shadow</strong>: <code>u · v = ||u|| * ||v|| * cos(theta)</code>.
-          Orthogonal vectors (<code>dot = 0</code>) cast zero shadow and share zero mutual information.
+          <strong>Dot product is a physical shadow</strong>:{" "}
+          <InlineMath math="\mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\|\,\|\mathbf{v}\|\cos\theta" />.
+          Orthogonal vectors (<InlineMath math="\mathbf{u} \cdot \mathbf{v} = 0" />) cast zero shadow and share zero mutual information.
         </li>
         <li>
-          <strong>Unit normalization guarantees equivalence</strong>: Under L2 normalization,
-          <code>||u - v|| = sqrt(2 - 2 * cos(u, v))</code>. Ranking by minimum Euclidean distance and maximum
-          cosine similarity produces identical results.
+          <strong>Unit normalization guarantees equivalence</strong>: Under L2 normalization,{" "}
+          <InlineMath math="\|\mathbf{u} - \mathbf{v}\| = \sqrt{2 - 2\cos(\mathbf{u}, \mathbf{v})}" />.
+          Ranking by minimum Euclidean distance and maximum cosine similarity produces identical results.
         </li>
         <li>
           <strong>PostgreSQL index scans require ASC</strong>: <code>pgvector</code>&apos;s{" "}<code>&lt;#&gt;</code>{" "}
-          operator returns <code>-(u · v)</code>{" "}to enable index traversal for maximum similarity using ascending scans.
+          operator returns <InlineMath math="-(\mathbf{u} \cdot \mathbf{v})" />{" "}to enable index traversal for maximum similarity using ascending scans.
         </li>
         <li>
           <strong>Watch for anisotropy</strong>: Cosine matches statistical correlation only when centered at zero.
