@@ -8,18 +8,18 @@ Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh 
 
 ## Tính Năng Nổi Bật
 
-- **📄 Project Detail Pages:** 4 trang chi tiết cho từng thư viện npm (Shopee, TikTok, Lazada, All-in-One) với code examples, số liệu thống kê downloads, và hướng dẫn cài đặt nhanh.
+- **📄 Project Detail Pages:** 4 trang chi tiết cho từng thư viện npm (Shopee, TikTok, Lazada, All-in-One) với code examples kèm nút copy code, số liệu thống kê downloads, và hướng dẫn cài đặt nhanh.
 - **👤 About / CV Page:** Trang giới thiệu cá nhân với timeline kinh nghiệm làm việc, kỹ năng, học vấn, kèm **CV PDF tải về** (`public/cv/`, sinh từ cùng dữ liệu — xem "Tạo lại CV").
-- **📝 Blog:** 3 bài viết kỹ thuật (Shopee API, Webhook Security, Monorepo) với syntax highlighting và định dạng học thuật.
+- **📝 Blog:** 10 bài viết kỹ thuật, nhiều bài có số đo thực nghiệm (PostgreSQL, Worker Threads, Refresh Token Rotation, Concurrency Locks, Append-only...), định dạng học thuật và nút copy code.
 - **🔍 SEO Đầy Đủ:** `sitemap.xml` và `robots.txt` tự động, `generateMetadata` cho từng trang/blog/project.
-- **🕒 Clock & Weather Widget:** Đồng hồ hệ thống tự động cập nhật và widget thời tiết thời gian thực tại TP. Hồ Chí Minh sử dụng Open-Meteo API.
+- **🕒 Clock & Weather Widget:** Đồng hồ hệ thống tự động cập nhật và widget thời tiết thời gian thực tại Đà Nẵng sử dụng Open-Meteo API.
 - **📊 Thống kê npm:** Tự động kết nối npm Registry API để hiển thị số lượt tải các thư viện mỗi tuần.
 - **🎨 Hình ảnh AI Độc quyền:** Ảnh minh họa bàn làm việc dạng pixel-art và avatar cá nhân phong cách 8-bit từ AI.
-- **🌐 Song ngữ, mặc định tiếng Anh:** `/` là **English**, `/vi` là tiếng Việt, có công tắc `EN / VI` ở header. Kèm `hreflang` + `x-default` trong `<head>` và trong `sitemap.xml`.
-- **🖥️ Systems Section:** ba hệ thống đang làm, mô tả **kỹ thuật, ẩn danh khách hàng** (`profile.systems`).
+- **🌐 Tiếng Anh nhất quán (English-first):** Toàn bộ giao diện và bài viết sử dụng tiếng Anh chuẩn mực. Các URL cũ `/vi` và `/vi/*` được Cloudflare Worker tự động chuyển hướng 301 vĩnh viễn về URL tiếng Anh tương ứng để bảo toàn thứ hạng tìm kiếm và tránh nội dung trùng lặp.
+- **🖥️ Systems Section:** Ba hệ thống đang làm, mô tả **kỹ thuật, ẩn danh khách hàng** (`profile.systems`).
 - **🔬 Research Section:** Mục nghiên cứu độc lập (câu hỏi · phương pháp · trạng thái trung thực · từ khoá) trên cả trang chủ và trang About. Việc học ghi là "Master's student" (học viên cao học), không dùng "graduate researcher" vì Google dịch ra "nghiên cứu sinh".
-- **📬 Form liên hệ không Backend:** Web3Forms qua biến môi trường; chưa cấu hình thì tự rơi về `mailto:`.
-- **🔎 SEO nâng cao:** `metadataBase`, OpenGraph, Twitter Card, title template, và **JSON-LD `Person` schema** (quyết định Google hiển thị ra sao khi ai đó gõ đúng tên).
+- **📬 Form liên hệ không Backend:** Web3Forms qua biến môi trường (kèm trường ẩn honeypot chống bot); chưa cấu hình thì tự rơi về `mailto:`.
+- **🔎 SEO nâng cao:** `metadataBase`, OpenGraph, Twitter Card, title template, và **JSON-LD `Person` + `WebSite` schema** (quyết định Google hiển thị ra sao khi ai đó gõ đúng tên).
 - **♿ Skip-link** tới `<main id="main">` cho người dùng bàn phím.
 - **⚡ Static Export siêu nhẹ:** Trang là file tĩnh do Cloudflare phục vụ thẳng; Worker chỉ đứng trước vài đường dẫn (admin, ẩn/ghim bài, nhật ký lượt xem).
 - **🚫 Custom 404 Page:** Trang báo lỗi 404 được thiết kế riêng.
@@ -37,35 +37,19 @@ luận văn** — `venue` và `honestNote` phải giữ đúng như vậy. Khi n
 **3. Experience = 1 câu tóm tắt + 2-4 gạch đầu dòng.** Không viết đoạn văn dài. Trường `summary`
 trả lời *"hệ thống đó là gì"*, `highlights` trả lời *"mình đã làm gì"* — ưu tiên thứ đo được.
 
-## Song ngữ — cách hoạt động
+## Quản lý nội dung & Ngôn ngữ
+
+Site sử dụng tiếng Anh thống nhất cho toàn bộ giao diện, các gói thư viện và bài viết blog:
 
 ```
-/            → English  (mặc định, không có tiền tố)
-/about       → English
-/vi          → Tiếng Việt
-/vi/about    → Tiếng Việt
-/blog/*      → MỘT URL, nội dung tiếng Việt (đánh dấu lang="vi")
-/projects/*  → MỘT URL, mô tả gói vốn đã bằng tiếng Anh
+/            → Landing page (English)
+/about       → Curriculum Vitae / Profile (English)
+/blog/*      → Technical blog posts (English)
+/projects/*  → NPM package detail pages (English)
+/vi/*        → 301 Redirect về URL gốc tương ứng
 ```
 
-**Vì sao blog/projects không nhân đôi:** nội dung của chúng không song ngữ. Tạo `/vi/blog/...`
-chỉ để đổi phần khung sẽ sinh **trùng nội dung** cho SEO. Thay vào đó trang chủ bản EN hiện một
-ghi chú nói rõ các bài viết bằng tiếng Việt.
-
-**Không có tự động chuyển theo trình duyệt.** Static export không chạy được Proxy/middleware
-(xem `node_modules/next/dist/docs/01-app/02-guides/static-exports.md`), nên công tắc `EN / VI`
-ở header là lối vào duy nhất — phải luôn hiển thị.
-
-| File | Vai trò |
-|---|---|
-| `src/i18n/config.ts` | danh sách locale, `href(lang, path)`, `HTML_LANG` |
-| `src/i18n/dictionary.ts` | **toàn bộ chữ giao diện**, hai bản EN/VI |
-| `src/i18n/metadata.ts` | `alternatesFor()` sinh `hreflang` + canonical |
-| `src/i18n/types.ts` | `Localized<T> = { en: T; vi: T }` |
-| `src/data/profile.tsx` | dữ liệu dùng `Localized<>` ở đúng trường khác nhau |
-| `src/components/HomePage.tsx` · `AboutPage.tsx` | nhận prop `lang`, route chỉ là vỏ mỏng |
-
-Thêm chữ mới: khai trong `Dictionary` (TypeScript sẽ bắt buộc điền **cả hai** ngôn ngữ).
+Chuỗi chữ giao diện được tập trung tại `src/content/copy.ts`. Tránh hardcode chuỗi trực tiếp trong JSX để giữ tính nhất quán và dễ bảo trì khi cần thay đổi.
 
 ## Ảnh Open Graph
 

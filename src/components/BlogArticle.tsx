@@ -3,7 +3,10 @@ import Link from "next/link";
 import { blogPosts } from "@/data/blog";
 import { formatDate } from "@/lib/date";
 import { copy } from "@/content/copy";
+import { profile } from "@/data/profile";
 import { SITE_DOMAIN } from "@/lib/site";
+import CodeBlockEnhancer from "@/components/CodeBlockEnhancer";
+import TableOfContents from "@/components/TableOfContents";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 
 export default function BlogArticle({
@@ -56,9 +59,14 @@ export default function BlogArticle({
             {post.title}
           </h1>
 
+          {/* Mobile Table of Contents */}
+          <TableOfContents mode="mobile" />
+
           {/* Render article content */}
-          <div className="space-y-6">
-            <Content />
+          <div id="article-content" className="space-y-6">
+            <CodeBlockEnhancer>
+              <Content />
+            </CodeBlockEnhancer>
           </div>
 
           <div className="editorial-border-double mt-12 py-4 flex justify-between items-center text-xs font-mono text-zinc-500">
@@ -72,6 +80,9 @@ export default function BlogArticle({
         {/* Right Column (4 cols): Sidebar info */}
         <aside className="lg:col-span-4 lg:border-l lg:border-zinc-200 lg:pl-6 space-y-8">
           
+          {/* Desktop Sticky Table of Contents */}
+          <TableOfContents mode="desktop" />
+
           {/* About Author */}
           <section className="bg-[#fcfcfc] border border-zinc-200 p-4 rounded-lg">
             <h3 className="font-mono font-bold text-xs text-zinc-900 border-b border-zinc-200 pb-1 mb-2 uppercase">
@@ -117,7 +128,7 @@ export default function BlogArticle({
               {d.blog.ctaBody}
             </p>
             <a
-              href="mailto:phamkhanhminhman97@gmail.com"
+              href={`mailto:${profile.email}`}
               className="inline-block bg-black text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded hover:bg-zinc-800 transition-colors uppercase text-center w-full"
             >
               {d.blog.ctaButton}

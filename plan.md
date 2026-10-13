@@ -138,10 +138,9 @@ graph LR
 
 ## Phần 3: Trạng thái & việc còn lại
 
-> **Cập nhật 2026-08-21.** Trước bản này, Phase 2-5 dưới đây đều đánh dấu `[ ]` chưa làm
-> trong khi site đã chạy từ lâu — tài liệu tự khai sai còn tệ hơn không có tài liệu.
-> Mục "còn lại" chỉ giữ việc **có số đo hoặc kiểm chứng được**; không có mục chung chung
-> kiểu "cải thiện hiệu năng", vì mục như vậy không bao giờ được tick.
+> **Cập nhật 2026-10-13.** Đồng bộ hiện trạng thực tế: domain phamkhanhminhman.com đã
+> kích hoạt, blog đã có 10 bài kỹ thuật (nhiều bài có số đo thực nghiệm), code block có nút copy,
+> site chuyển sang tiếng Anh nhất quán (301 từ /vi), và ESLint sạch 100%.
 
 ### ✅ Đã xong
 
@@ -152,35 +151,28 @@ graph LR
 - [x] Next.js + Tailwind, **triển khai trên Cloudflare** *(kế hoạch cũ ghi Vercel — đã đổi)*
 - [x] Layout, landing page, trang danh sách projects
 - [x] 4 trang chi tiết package (Shopee · TikTok Shop · Lazada · All-in-One)
-- [x] Blog (3 bài) · trang About/CV · form liên hệ
+- [x] **Blog kỹ thuật (10 bài, nhiều bài có số đo thực nghiệm)** · trang About/CV · form liên hệ Web3Forms (kèm honeypot)
 
 **Phase 5 — Polish**
 - [x] SEO: `metadataBase`, OpenGraph, Twitter card, canonical, sitemap phân mảnh
 - [x] Ảnh OG 1200×630 theo file convention của Next
-- [x] JSON-LD `Person` schema
-- [x] Analytics (GA4, tôn trọng Do Not Track)
-
-**Ngoài kế hoạch ban đầu**
-- [x] **Song ngữ EN/VI** — `/` tiếng Anh mặc định, `/vi` tiếng Việt, hreflang + x-default
-- [x] Mục **Research** và **Systems** ở trang About
-- [x] Form liên hệ qua biến môi trường; thiếu khoá thì tự rơi về `mailto:`
-- [x] **RSS feed** `/rss.xml` + autodiscovery trong `<head>`
-- [x] Trang 404 song ngữ
-- [x] **Tối ưu ảnh**: WebP + `<picture>`, resize theo kích thước hiển thị thật
+- [x] JSON-LD `Person` + `WebSite` schema
+- [x] Hệ thống nhật ký lượt xem trên Cloudflare D1 + beacon chống bot + rate-limiting admin
+- [x] **Đổi domain sang `phamkhanhminhman.com`** — Worker 301 chuyển toàn bộ lượt truy cập từ `pkmm.online` và `www` về apex mới, chuẩn hoá canonical/OG/JSON-LD.
+- [x] **Tiếng Anh nhất quán** — `/vi` và `/vi/*` chuyển hướng 301 về bản tiếng Anh, gỡ bỏ code i18n thừa.
+- [x] Nút copy code tự động cho toàn bộ code block trong blog và project detail.
+- [x] Dọn dẹp asset boilerplate thừa và cấu hình ESLint sạch 100% (0 error, 0 warning).
+- [x] Tối ưu ảnh: WebP + `<picture>`, resize theo kích thước hiển thị thật
       → payload trang chủ **2.581 KB → 1.013 KB (−61%)**
 - [x] Skip-link, `width`/`height` chống layout shift, `loading="lazy"` cho logo
 
 ### Còn lại
 
-- [ ] **Đổi domain sang `phamkhanhminhman.com`** — `.online` renew ~$50/năm;
-      `.com` $10,46/năm cố định. Đã kiểm còn trống 2026-08-21.
-      Cách chuyển: chạy song song → 301 từ `.online` → để hết hạn tự nhiên.
-- [ ] **Blog đã 90 ngày không có bài mới** (mới nhất 23/05/2026). RSS giờ đã có,
-      nhưng feed không có gì mới thì không ai theo dõi.
-- [ ] Dark mode (`prefers-color-scheme`)
 - [ ] Điền **số đo thật** vào Experience — hiện 0/20 gạch đầu dòng có số
       (thông lượng, số đơn/ngày, p95 trước-sau). Chỉ tác giả mới có số này.
-- [ ] Ảnh OG riêng cho trang blog/project *(giờ mọi trang dùng chung một ảnh)*
+- [ ] Cập nhật tiến độ Luận văn Thạc sĩ (Research/Thesis) khi chốt đề tài chính thức.
+- [ ] Ảnh OG riêng cho từng trang blog/project *(hiện dùng chung ảnh của trang chủ)*.
+- [ ] Dark mode (`prefers-color-scheme`) phong cách Charcoal Editorial.
 
 ### Không làm, và vì sao
 

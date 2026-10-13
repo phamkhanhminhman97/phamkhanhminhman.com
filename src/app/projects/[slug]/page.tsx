@@ -11,7 +11,10 @@ import {
 } from "lucide-react";
 import { npmPackages, getPackageBySlug, getRelatedPackages, getBlogSlugForPackage } from "@/data/projects";
 import { blogPosts } from "@/data/blog";
+import { profile } from "@/data/profile";
+import { copy } from "@/content/copy";
 import NpmStatsCard from "@/components/NpmStatsCard";
+import CodeBlock from "@/components/CodeBlock";
 import { SITE_DOMAIN } from "@/lib/site";
 import { alternatesFor, openGraphFor } from "@/lib/seo";
 
@@ -167,9 +170,7 @@ export default async function ProjectDetailPage({
                       {example.title}
                     </h3>
                   </div>
-                  <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-                    <code>{example.code}</code>
-                  </pre>
+                  <CodeBlock code={example.code} />
                 </div>
               ))}
             </div>
@@ -235,7 +236,7 @@ export default async function ProjectDetailPage({
           <div className="editorial-border-double mt-10 py-4 flex justify-between items-center text-xs font-mono text-zinc-500">
             <span>{pkg.name} — {pkg.tag}</span>
             <Link href="/" className="underline hover:text-black">
-              Trở về Trang chủ
+              {copy.nav.backToHome}
             </Link>
           </div>
         </article>
@@ -251,9 +252,7 @@ export default async function ProjectDetailPage({
             <h3 className="font-mono font-bold text-xs text-zinc-900 border-b border-zinc-200 pb-1 mb-3 uppercase">
               Quick Install
             </h3>
-            <pre className="bg-zinc-900 text-zinc-100 p-3 rounded font-mono text-xs overflow-x-auto">
-              <code>{`npm i ${pkg.npmName}`}</code>
-            </pre>
+            <CodeBlock code={`npm i ${pkg.npmName}`} className="p-3" inline />
             <p className="font-mono text-[10px] text-zinc-500 mt-2">
               {/* Theo trường "engines" trong package.json của cả bốn gói; CI chạy test trên Node 20. */}
               Requires Node.js 16 or higher (tested on Node 20)
@@ -292,16 +291,16 @@ export default async function ProjectDetailPage({
           {/* Support CTA */}
           <section className="border border-zinc-200 rounded-lg p-4 bg-white shadow-2xs">
             <h4 className="font-sans font-bold text-xs text-zinc-950 mb-1">
-              Need Integration Help?
+              {copy.blog.ctaTitle}
             </h4>
             <p className="font-serif-body text-[11.5px] text-zinc-600 leading-relaxed mb-3">
-              Nếu doanh nghiệp của bạn cần xây dựng giải pháp đồng bộ tự động đơn hàng với các sàn thương mại điện tử, hãy liên hệ để trao đổi.
+              {copy.blog.ctaBody}
             </p>
             <a
-              href="mailto:phamkhanhminhman97@gmail.com"
+              href={`mailto:${profile.email}`}
               className="inline-block bg-black text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded hover:bg-zinc-800 transition-colors uppercase text-center w-full"
             >
-              Gửi email trực tiếp
+              {copy.blog.ctaButton}
             </a>
           </section>
 

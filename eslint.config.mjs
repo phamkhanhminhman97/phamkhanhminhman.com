@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     // và .gitignore đã bỏ qua — nhưng eslint thì không đọc .gitignore, nên
     // chạy `wrangler dev` một lần là lint tự mọc thêm cảnh báo.
     ".wrangler/**",
+    // File định nghĩa kiểu tự sinh bởi Wrangler (`wrangler types`), chứa các
+    // chú thích eslint-disable không dùng sinh ra từ template của Cloudflare.
+    "worker-configuration.d.ts",
   ]),
 ]);
 
