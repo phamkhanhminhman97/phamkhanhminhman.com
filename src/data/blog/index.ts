@@ -10,15 +10,17 @@ import silentMissingAwaitRunInExecutor from "./posts/silent-missing-await-run-in
 import shopeeOauthTokenLifecycleAtScale from "./posts/shopee-oauth-token-lifecycle-at-scale";
 import safeWebhookHandling from "./posts/safe-webhook-handling";
 import ecommerceSdkMonorepo from "./posts/ecommerce-sdk-monorepo";
+import theGeometryBehindVectorSearch from "./posts/the-geometry-behind-vector-search";
 
 export type { BlogPost } from "./types";
 
 /**
+ * Toàn bộ bài viết (cả technical blog và study notes).
  * Thứ tự ở đây là thứ tự hiển thị mặc định (mới nhất trước) khi chưa có
- * `order` riêng đặt qua trang /admin. Mỗi bài sống trong file riêng dưới
- * `./posts/<slug>.tsx` — xem `./types.ts` cho hình dạng `BlogPost`.
+ * `order` riêng đặt qua trang /admin.
  */
-export const blogPosts: BlogPost[] = [
+export const allPosts: BlogPost[] = [
+  theGeometryBehindVectorSearch,
   refreshTokenRotationMeasured,
   nodejsWorkerThreadsMeasured,
   postgresqlIndexNotesMeasured,
@@ -30,3 +32,10 @@ export const blogPosts: BlogPost[] = [
   safeWebhookHandling,
   ecommerceSdkMonorepo,
 ];
+
+/** Bài viết thuộc mục Technical Blog (/blog) - đo lường production, e-commerce backend. */
+export const blogPosts: BlogPost[] = allPosts.filter((post) => post.section !== "notes");
+
+/** Ghi chú học tập thuộc mục Study Notes (/notes) - đúc kết lý thuyết, toán, AI syllabus. */
+export const notesPosts: BlogPost[] = allPosts.filter((post) => post.section === "notes");
+

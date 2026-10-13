@@ -12,5 +12,7 @@ export interface BlogPost {
   title: string;
   readTime: string;
   description: string;
+  /** Section identifier: "blog" (default, technical articles) or "notes" (study notes). */
+  section?: "blog" | "notes";
   content: () => React.JSX.Element;
 }

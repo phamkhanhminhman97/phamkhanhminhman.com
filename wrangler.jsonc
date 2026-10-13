@@ -32,6 +32,8 @@
       "/vi",
       "/vi/*",
       "/blog/*",
+      "/notes",
+      "/notes/*",
       "/about",
       "/projects/*",
       "/rss.xml",

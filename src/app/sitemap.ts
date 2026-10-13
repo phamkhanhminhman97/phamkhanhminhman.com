@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { blogPosts } from "@/data/blog";
+import { blogPosts, notesPosts } from "@/data/blog";
 import { npmPackages } from "@/data/projects";
 import { SITE_URL as BASE_URL } from "@/lib/site";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-static";
 
 /**
  * Lần sửa nội dung thật gần nhất của các trang không phải blog (trang chủ,
- * /about, /projects/*).
+ * /about, /notes, /projects/*).
  *
  * Sửa tay khi thật sự viết lại nội dung các trang đó. Cố ý KHÔNG dùng
  * `new Date()`: xem ghi chú ở phần blog bên dưới.
@@ -30,6 +30,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.8,
     },
+    {
+      url: `${BASE_URL}/notes`,
+      lastModified: new Date(CONTENT_UPDATED),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
     // `lastModified` lấy NGÀY THẬT của bài, không phải new Date().
     //
     // Trước đây mọi URL đều báo "vừa sửa lúc build", tức là mỗi lần deploy là
@@ -38,6 +44,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // tác dụng của nó với những bài thật sự có cập nhật.
     ...blogPosts.map((post) => ({
       url: `${BASE_URL}/blog/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    ...notesPosts.map((post) => ({
+      url: `${BASE_URL}/notes/${post.slug}`,
       lastModified: new Date(post.date),
       changeFrequency: "monthly" as const,
       priority: 0.6,

@@ -11,7 +11,8 @@ Trang web cá nhân và tài liệu mã nguồn mở của **Phạm Khánh Minh 
 - **📄 Project Detail Pages:** 4 trang chi tiết cho từng thư viện npm (Shopee, TikTok, Lazada, All-in-One) với code examples kèm nút copy code, số liệu thống kê downloads, và hướng dẫn cài đặt nhanh.
 - **👤 About / CV Page:** Trang giới thiệu cá nhân với timeline kinh nghiệm làm việc, kỹ năng, học vấn, kèm **CV PDF tải về** (`public/cv/`, sinh từ cùng dữ liệu — xem "Tạo lại CV").
 - **📝 Blog:** 10 bài viết kỹ thuật, nhiều bài có số đo thực nghiệm (PostgreSQL, Worker Threads, Refresh Token Rotation, Concurrency Locks, Append-only...), định dạng học thuật và nút copy code.
-- **🔍 SEO Đầy Đủ:** `sitemap.xml` và `robots.txt` tự động, `generateMetadata` cho từng trang/blog/project.
+- **📚 Study Notes (`/notes`):** Mục ghi chú học tập riêng biệt cho chương trình Cao học (Toán, Đại số tuyến tính, Tối ưu hoá, RAG & Hệ thống AI), tách bạch với các bài đo lường production trên blog.
+- **🔍 SEO Đầy Đủ:** `sitemap.xml` và `robots.txt` tự động, `generateMetadata` cho từng trang/blog/notes/project.
 - **🕒 Clock & Weather Widget:** Đồng hồ hệ thống tự động cập nhật và widget thời tiết thời gian thực tại Đà Nẵng sử dụng Open-Meteo API.
 - **📊 Thống kê npm:** Tự động kết nối npm Registry API để hiển thị số lượt tải các thư viện mỗi tuần.
 - **🎨 Hình ảnh AI Độc quyền:** Ảnh minh họa bàn làm việc dạng pixel-art và avatar cá nhân phong cách 8-bit từ AI.
@@ -39,12 +40,14 @@ trả lời *"hệ thống đó là gì"*, `highlights` trả lời *"mình đã
 
 ## Quản lý nội dung & Ngôn ngữ
 
-Site sử dụng tiếng Anh thống nhất cho toàn bộ giao diện, các gói thư viện và bài viết blog:
+Site sử dụng tiếng Anh thống nhất cho toàn bộ giao diện, các gói thư viện và bài viết blog/notes:
 
 ```
 /            → Landing page (English)
 /about       → Curriculum Vitae / Profile (English)
 /blog/*      → Technical blog posts (English)
+/notes       → Study Notes collection (English)
+/notes/*     → Individual study notes (English)
 /projects/*  → NPM package detail pages (English)
 /vi/*        → 301 Redirect về URL gốc tương ứng
 ```

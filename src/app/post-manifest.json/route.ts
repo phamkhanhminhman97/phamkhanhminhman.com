@@ -1,4 +1,4 @@
-import { blogPosts } from "@/data/blog";
+import { allPosts } from "@/data/blog";
 
 /**
  * Danh sách bài ở dạng JSON tĩnh, sinh ra lúc build.
@@ -11,11 +11,12 @@ import { blogPosts } from "@/data/blog";
 export const dynamic = "force-static";
 
 export async function GET() {
-  const posts = blogPosts.map((p) => ({
+  const posts = allPosts.map((p) => ({
     slug: p.slug,
     date: p.date,
     category: p.category,
     title: p.title,
+    section: p.section ?? "blog",
   }));
 
   return new Response(JSON.stringify({ posts }, null, 2), {

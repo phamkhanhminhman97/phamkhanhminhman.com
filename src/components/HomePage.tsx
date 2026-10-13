@@ -346,6 +346,14 @@ export default function HomePage() {
             </button>
           </li>
           <li>
+            <Link
+              href="/notes"
+              className="hover:text-black transition-colors py-1 block"
+            >
+              • {d.nav.notes}
+            </Link>
+          </li>
+          <li>
             <button
               onClick={() => scrollToSection("contact")}
               className="hover:text-black transition-colors py-1 cursor-pointer"

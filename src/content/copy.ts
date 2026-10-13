@@ -10,8 +10,10 @@ export const copy = {
     research: "RESEARCH",
     about: "ABOUT & EXPERIENCE",
     blog: "TECHNICAL BLOG",
+    notes: "STUDY NOTES",
     contact: "CONTACT & LINKS",
     backToHome: "Back to Home",
+    backToNotes: "Back to Notes",
   },
   home: {
     metaTitle:
@@ -122,6 +124,19 @@ export const copy = {
     ctaBody:
       "If you are building order or inventory sync against Shopee, TikTok Shop or Lazada, get in touch.",
     ctaButton: "Email me",
+  },
+  notes: {
+    metaTitle: "Study Notes — Mathematics, Systems & AI Foundations",
+    metaDescription:
+      "Curated notes, mathematical intuitions, and empirical verifications from ongoing Master's studies in Computer Science at Danang University of Science and Technology.",
+    heading: "STUDY NOTES",
+    subheading:
+      "Personal distillations, derivations, and independent code verifications from coursework in linear algebra, optimization, probability, and machine learning systems.",
+    badge: "STUDY NOTES",
+    disclaimer:
+      "These articles are structured study notes and independent verifications from academic coursework, separate from production backend benchmarks.",
+    otherNotes: "Other study notes",
+    emptyNotice: "No study notes published yet. Check back soon.",
   },
   footer: {
     rights: "All rights reserved.",

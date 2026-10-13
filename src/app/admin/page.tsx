@@ -20,6 +20,7 @@ interface Post {
   date: string;
   category: string;
   title: string;
+  section?: "blog" | "notes";
 }
 
 interface Meta {
@@ -245,13 +246,13 @@ export default function AdminPage() {
                   {post.title}
                 </p>
                 <p className="font-mono text-[10px] text-zinc-400 mt-1 uppercase">
-                  {post.date} · {post.category}
+                  {post.date} · {post.category} · [{post.section === "notes" ? "notes" : "blog"}]
                   {m.pinned && <span className="text-amber-700"> · ghim</span>}
                   {m.hidden && <span className="text-red-700"> · đang ẩn</span>}
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <a
-                    href={`/blog/${post.slug}`}
+                    href={`/${post.section === "notes" ? "notes" : "blog"}/${post.slug}`}
                     target="_blank"
                     rel="noreferrer"
                     className="font-mono text-[10px] uppercase text-zinc-500 hover:text-black"

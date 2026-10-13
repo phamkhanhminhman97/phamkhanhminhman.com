@@ -136,9 +136,9 @@ function isHidden(meta: PostMetaMap, slug: string): boolean {
   return meta[slug]?.hidden === true;
 }
 
-/** Slug của bài từ /blog/<slug>. */
+/** Slug của bài từ /blog/<slug> hoặc /notes/<slug>. */
 function slugOf(pathname: string): string | null {
-  const m = pathname.match(/^\/blog\/([^/]+?)\/?$/);
+  const m = pathname.match(/^\/(?:blog|notes)\/([^/]+?)\/?$/);
   return m ? decodeURIComponent(m[1]) : null;
 }
 
@@ -783,7 +783,7 @@ async function filterFeed(res: Response, env: Env, tag: "item" | "url"): Promise
   const body = await res.text();
   const re = new RegExp(`\\s*<${tag}>[\\s\\S]*?</${tag}>`, "g");
   const kept = body.replace(re, (block) =>
-    hidden.some((slug) => block.includes(`/blog/${slug}`)) ? "" : block,
+    hidden.some((slug) => block.includes(`/blog/${slug}`) || block.includes(`/notes/${slug}`)) ? "" : block,
   );
   return new Response(kept, { status: res.status, headers: res.headers });
 }

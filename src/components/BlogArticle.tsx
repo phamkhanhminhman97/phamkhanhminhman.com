@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { blogPosts } from "@/data/blog";
+import { blogPosts, notesPosts, type BlogPost } from "@/data/blog";
 import { formatDate } from "@/lib/date";
 import { copy } from "@/content/copy";
 import { profile } from "@/data/profile";
@@ -12,10 +12,13 @@ import { ArrowLeft, Calendar, Clock } from "lucide-react";
 export default function BlogArticle({
   post,
 }: {
-  post: (typeof blogPosts)[number];
+  post: BlogPost;
 }) {
   const d = copy;
   const Content = post.content;
+  const isNotes = post.section === "notes";
+  const parentPath = isNotes ? "/notes" : "/";
+  const parentLabel = isNotes ? d.nav.backToNotes : d.nav.backToHome;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
@@ -23,13 +26,13 @@ export default function BlogArticle({
       {/* Header back navigation */}
       <header className="flex items-center justify-between border-b border-zinc-200 pb-4 mb-8">
         <Link
-          href="/"
+          href={parentPath}
           className="flex items-center gap-1 text-xs font-mono font-bold tracking-wider text-zinc-600 hover:text-black uppercase"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> {d.nav.backToHome}
+          <ArrowLeft className="w-3.5 h-3.5" /> {parentLabel}
         </Link>
         <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">
-          {SITE_DOMAIN} / blog
+          {SITE_DOMAIN} / {isNotes ? "notes" : "blog"}
         </span>
       </header>
 
@@ -71,8 +74,8 @@ export default function BlogArticle({
 
           <div className="editorial-border-double mt-12 py-4 flex justify-between items-center text-xs font-mono text-zinc-500">
             <span>{post.category}</span>
-            <Link href="/" className="underline hover:text-black">
-              {d.nav.backToHome}
+            <Link href={parentPath} className="underline hover:text-black">
+              {parentLabel}
             </Link>
           </div>
         </article>
@@ -89,51 +92,70 @@ export default function BlogArticle({
               {d.blog.author}
             </h3>
             <p className="font-sans font-bold text-sm text-zinc-900 mb-0.5">Phạm Khánh Minh Mẫn</p>
-            <p className="font-mono text-[10px] text-zinc-500 mb-2">E-commerce API Developer</p>
+            <p className="font-mono text-[10px] text-zinc-500 mb-2">
+              {isNotes ? "CS Master's Student • Backend Dev" : "E-commerce API Developer"}
+            </p>
             <p className="font-serif-body text-xs text-zinc-600 leading-relaxed">
               {d.blog.authorBio}
             </p>
           </section>
 
-          {/* Related Articles */}
-          <section>
-            <h3 className="font-mono font-bold text-xs text-zinc-900 border-b border-zinc-200 pb-1 mb-3 uppercase">
-              {d.blog.otherPosts}
-            </h3>
-            <ul className="space-y-3 font-sans text-xs">
-              {blogPosts
-                .filter((other) => other.slug !== post.slug)
-                .map((other) => (
-                  <li key={other.slug}>
-                    <Link
-                      href={`/blog/${other.slug}`}
-                      className="font-bold text-zinc-800 hover:text-red-700 leading-snug block transition-colors"
-                    >
-                      {other.title}
-                    </Link>
-                    <span className="font-mono text-[9px] text-zinc-400 uppercase mt-0.5 block">
-                      {formatDate(other.date)}
-                    </span>
-                  </li>
-                ))}
-            </ul>
-          </section>
+          {/* Related Articles / Notes */}
+          {(() => {
+            const related = (isNotes ? notesPosts : blogPosts).filter(
+              (other) => other.slug !== post.slug
+            );
+            if (related.length === 0) return null;
+            return (
+              <section>
+                <h3 className="font-mono font-bold text-xs text-zinc-900 border-b border-zinc-200 pb-1 mb-3 uppercase">
+                  {isNotes ? d.notes.otherNotes : d.blog.otherPosts}
+                </h3>
+                <ul className="space-y-3 font-sans text-xs">
+                  {related.map((other) => (
+                    <li key={other.slug}>
+                      <Link
+                        href={`/${isNotes ? "notes" : "blog"}/${other.slug}`}
+                        className="font-bold text-zinc-800 hover:text-red-700 leading-snug block transition-colors"
+                      >
+                        {other.title}
+                      </Link>
+                      <span className="font-mono text-[9px] text-zinc-400 uppercase mt-0.5 block">
+                        {formatDate(other.date)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })()}
 
-          {/* Web3Forms Context */}
-          <section className="border border-zinc-200 rounded-lg p-4 bg-white shadow-2xs">
-            <h4 className="font-sans font-bold text-xs text-zinc-950 mb-1">
-              {d.blog.ctaTitle}
-            </h4>
-            <p className="font-serif-body text-[11.5px] text-zinc-600 leading-relaxed mb-3">
-              {d.blog.ctaBody}
-            </p>
-            <a
-              href={`mailto:${profile.email}`}
-              className="inline-block bg-black text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded hover:bg-zinc-800 transition-colors uppercase text-center w-full"
-            >
-              {d.blog.ctaButton}
-            </a>
-          </section>
+          {/* Context CTA or Academic Disclaimer */}
+          {isNotes ? (
+            <section className="border border-zinc-200 rounded-lg p-4 bg-[#fcfcfc]">
+              <h4 className="font-mono font-bold text-xs text-zinc-900 border-b border-zinc-200 pb-1 mb-2 uppercase">
+                {d.notes.badge}
+              </h4>
+              <p className="font-serif-body text-[11.5px] text-zinc-600 leading-relaxed">
+                {d.notes.disclaimer}
+              </p>
+            </section>
+          ) : (
+            <section className="border border-zinc-200 rounded-lg p-4 bg-white shadow-2xs">
+              <h4 className="font-sans font-bold text-xs text-zinc-950 mb-1">
+                {d.blog.ctaTitle}
+              </h4>
+              <p className="font-serif-body text-[11.5px] text-zinc-600 leading-relaxed mb-3">
+                {d.blog.ctaBody}
+              </p>
+              <a
+                href={`mailto:${profile.email}`}
+                className="inline-block bg-black text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded hover:bg-zinc-800 transition-colors uppercase text-center w-full"
+              >
+                {d.blog.ctaButton}
+              </a>
+            </section>
+          )}
 
         </aside>
       </main>
