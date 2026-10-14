@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import BlogArticle from "@/components/BlogArticle";
-import { notesPosts } from "@/data/blog";
+import { notesPosts } from "@/data/blog/notes";
+import { toSummary } from "@/data/blog/types";
 import { alternatesFor, openGraphFor } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
 import { profile } from "@/data/profile";
@@ -63,7 +64,10 @@ export default async function Page({
           }),
         }}
       />
-      <BlogArticle post={post} />
+      <BlogArticle
+        post={post}
+        related={notesPosts.filter((p) => p.slug !== post.slug).map(toSummary)}
+      />
     </>
   );
 }

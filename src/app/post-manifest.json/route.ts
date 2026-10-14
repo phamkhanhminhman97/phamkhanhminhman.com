@@ -1,4 +1,4 @@
-import { allPosts } from "@/data/blog";
+import { allPosts } from "@/data/blog/all";
 
 /**
  * Danh sách bài ở dạng JSON tĩnh, sinh ra lúc build.

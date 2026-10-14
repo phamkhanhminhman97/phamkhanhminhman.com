@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { blogPosts, notesPosts } from "@/data/blog";
+import { blogPosts } from "@/data/blog";
+import { notesPosts } from "@/data/blog/notes";
 import { npmPackages } from "@/data/projects";
 import { SITE_URL as BASE_URL } from "@/lib/site";
 
@@ -13,6 +14,12 @@ export const dynamic = "force-static";
  * `new Date()`: xem ghi chú ở phần blog bên dưới.
  */
 const CONTENT_UPDATED = "2026-09-18";
+
+/** /notes đổi mỗi khi có ghi chú mới: lấy ngày của ghi chú mới nhất, không phải ngày cố định. */
+const NOTES_UPDATED = notesPosts.reduce(
+  (latest, post) => (post.date > latest ? post.date : latest),
+  CONTENT_UPDATED,
+);
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -32,7 +39,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/notes`,
-      lastModified: new Date(CONTENT_UPDATED),
+      lastModified: new Date(NOTES_UPDATED),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     },

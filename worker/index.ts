@@ -136,10 +136,19 @@ function isHidden(meta: PostMetaMap, slug: string): boolean {
   return meta[slug]?.hidden === true;
 }
 
-/** Slug của bài từ /blog/<slug> hoặc /notes/<slug>. */
+/**
+ * Slug của bài từ mọi đường dẫn phục vụ bài đó: trang (/x, /x/, /x.html) và các
+ * tệp dữ liệu mà Next.js tải khi điều hướng phía client (/x.txt, /x/__next*.txt).
+ * Bỏ sót nhóm sau thì bài bị ẩn vẫn đọc được qua tệp .txt.
+ */
 function slugOf(pathname: string): string | null {
-  const m = pathname.match(/^\/(?:blog|notes)\/([^/]+?)\/?$/);
-  return m ? decodeURIComponent(m[1]) : null;
+  const m = pathname.match(/^\/(?:blog|notes)\/([^/]+?)(?:\.html|\.txt)?(?:\/(?:__next[^/]*\.txt)?)?$/);
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return null; // %-escape hỏng: không phải đường dẫn của bài nào
+  }
 }
 
 // ---------------------------------------------------------------- nhật ký lượt xem
@@ -686,6 +695,11 @@ class BlogListRewriter {
   }
 }
 
+/** Escape chuỗi để nhúng vào RegExp. */
+function escapeRegExp(s: string): string {
+  return s.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
+
 /** Escape cho selector CSS: slug do mình đặt, nhưng vẫn không tin dữ liệu vào. */
 function cssEscape(s: string): string {
   return s.replace(/["\\]/g, "\\$&");
@@ -727,7 +741,11 @@ async function transformHtml(
 
   let rewriter: BlogListRewriter | null = null;
   let css = "";
-  let hiddenList: string[] = [];
+  // Mọi bài đang ẩn, không chỉ những bài có thẻ trong trang này. Lần mở đầu có
+  // thể là /about (không có thẻ bài nào); khi người xem bấm sang trang chủ hay
+  // /notes bằng điều hướng phía client, danh sách phải đã nằm sẵn trong trang,
+  // nếu không React vẽ lại cả bài đang ẩn.
+  const hiddenList = Object.keys(meta).filter((slug) => isHidden(meta, slug));
 
   if (Object.keys(meta).length > 0) {
     // Cần biết thứ tự gốc của các thẻ: đọc trước bằng một bản sao.
@@ -736,7 +754,6 @@ async function transformHtml(
     if (slugs.length > 0) {
       rewriter = new BlogListRewriter(meta, computeOrder(slugs, meta));
       css = rewriter.css();
-      hiddenList = [...new Set(slugs.filter((s) => isHidden(meta, s)))];
     }
   }
 
@@ -772,6 +789,37 @@ async function transformHtml(
   return out.transform(res);
 }
 
+/**
+ * Trang HTML, RSS và sitemap bị Worker biến đổi theo TỪNG request (ẩn / ghim từ KV,
+ * mã \`vid\` của beacon), nhưng \`etag\` và \`last-modified\` lại là của file tĩnh gốc.
+ * Hai thứ đó nói dối: trình duyệt đã lưu một bản (chẳng hạn trước khi bài bị ẩn)
+ * sẽ gửi \`If-None-Match\`, Asset Worker thấy file tĩnh không đổi nên trả 304, và
+ * người xem mãi mãi dùng bản cũ — ẩn, bỏ ẩn hay ghim bài không bao giờ tới được họ
+ * cho tới khi họ tải lại cứng.
+ *
+ * Cách chữa: với loại đường dẫn này, bỏ header điều kiện trước khi hỏi Asset
+ * Worker (luôn nhận 200 + nội dung đầy đủ để biến đổi) và bỏ cả hai validator khỏi
+ * kết quả để trình duyệt không còn gì để hỏi lại. Tệp tĩnh thật (JS, CSS, ảnh,
+ * dữ liệu .txt của Next) giữ nguyên validator.
+ */
+function isDynamicPage(pathname: string): boolean {
+  return !/\.[a-z0-9]+$/i.test(pathname) || /\.(?:html|xml)$/i.test(pathname);
+}
+
+function withoutConditionals(request: Request): Request {
+  const headers = new Headers(request.headers);
+  headers.delete("if-none-match");
+  headers.delete("if-modified-since");
+  return new Request(request, { headers });
+}
+
+function withoutValidators(res: Response): Response {
+  const headers = new Headers(res.headers);
+  headers.delete("etag");
+  headers.delete("last-modified");
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 /** Bỏ <item>/<url> của bài bị ẩn khỏi RSS và sitemap. */
 async function filterFeed(res: Response, env: Env, tag: "item" | "url"): Promise<Response> {
   const meta = await readMeta(env);
@@ -782,9 +830,11 @@ async function filterFeed(res: Response, env: Env, tag: "item" | "url"): Promise
 
   const body = await res.text();
   const re = new RegExp(`\\s*<${tag}>[\\s\\S]*?</${tag}>`, "g");
-  const kept = body.replace(re, (block) =>
-    hidden.some((slug) => block.includes(`/blog/${slug}`) || block.includes(`/notes/${slug}`)) ? "" : block,
+  // Khớp đúng ranh giới slug: ẩn "x" không được ẩn lây sang "x-y".
+  const hiddenUrl = new RegExp(
+    "/(?:blog|notes)/(?:" + hidden.map(escapeRegExp).join("|") + ")(?![\\w-])",
   );
+  const kept = body.replace(re, (block) => (hiddenUrl.test(block) ? "" : block));
   return new Response(kept, { status: res.status, headers: res.headers });
 }
 
@@ -857,16 +907,17 @@ async function handle(request: Request, env: Env, ctx: ExecutionContext): Promis
     return new Response(notFound.body, { status: 404, headers: notFound.headers });
   }
 
-  const res = await env.ASSETS.fetch(request);
+  const dynamicPage = isDynamicPage(url.pathname);
+  const res = await env.ASSETS.fetch(dynamicPage ? withoutConditionals(request) : request);
 
-  if (url.pathname === "/rss.xml") return filterFeed(res, env, "item");
-  if (url.pathname === "/sitemap.xml") return filterFeed(res, env, "url");
+  if (url.pathname === "/rss.xml") return withoutValidators(await filterFeed(res, env, "item"));
+  if (url.pathname === "/sitemap.xml") return withoutValidators(await filterFeed(res, env, "url"));
 
   const type = res.headers.get("content-type") ?? "";
   if (type.includes("text/html")) {
     // Không đo trang quản trị: đó là mình tự xem, đếm vào chỉ làm nhiễu.
     const track = !url.pathname.startsWith("/admin");
-    return transformHtml(res, env, vid, track);
+    return withoutValidators(await transformHtml(res, env, vid, track));
   }
 
   return res;

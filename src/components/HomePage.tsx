@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { blogPosts } from "@/data/blog";
+import type { PostSummary } from "@/data/blog/types";
 import { npmPackages } from "@/data/projects";
 import { profile } from "@/data/profile";
 import { formatDayMonth } from "@/lib/date";
@@ -70,7 +70,7 @@ const GithubIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-export default function HomePage() {
+export default function HomePage({ posts }: { posts: PostSummary[] }) {
   const d = copy;
   const t = d.home;
 
@@ -219,8 +219,8 @@ export default function HomePage() {
   // React hydrate sẽ chèn lại chúng vào DOM.
   const hidden = hiddenSlugs();
   const visiblePosts = hidden.length
-    ? blogPosts.filter((p) => !hidden.includes(p.slug))
-    : blogPosts;
+    ? posts.filter((p) => !hidden.includes(p.slug))
+    : posts;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">

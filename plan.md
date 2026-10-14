@@ -162,7 +162,7 @@ graph LR
 - [x] **Tiếng Anh nhất quán** — `/vi` và `/vi/*` chuyển hướng 301 về bản tiếng Anh, gỡ bỏ code i18n thừa.
 - [x] Nút copy code tự động cho toàn bộ code block trong blog và project detail.
 - [x] Dọn dẹp asset boilerplate thừa và cấu hình ESLint sạch 100% (0 error, 0 warning).
-- [x] **Mục Study Notes (`/notes`) riêng biệt**: Tách bạch ghi chú học tập Cao học khỏi blog kỹ thuật, hỗ trợ routing độc lập, sitemap, admin, và bài viết đầu tiên *The Geometry Behind Vector Search* (với code tự kiểm tra L2 equivalence, pgvector negative inner product, anisotropy).
+- [x] **Mục Study Notes (`/notes`) riêng biệt**: tách ghi chú học tập Cao học khỏi blog kỹ thuật. Routing, sitemap, ẩn/ghim qua /admin (Worker nhận cả `.txt`/`.html`), KaTeX dựng lúc build ở server nên không vào bundle trình duyệt. Bài đầu tiên *The Geometry Behind Vector Search* có số đo chạy lại trên NumPy và Postgres 18 + pgvector. Chi tiết: `docs/notes-section.md`.
 - [x] Tối ưu ảnh: WebP + `<picture>`, resize theo kích thước hiển thị thật
       → payload trang chủ **2.581 KB → 1.013 KB (−61%)**
 - [x] Skip-link, `width`/`height` chống layout shift, `loading="lazy"` cho logo

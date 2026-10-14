@@ -16,3 +16,24 @@ export interface BlogPost {
   section?: "blog" | "notes";
   content: () => React.JSX.Element;
 }
+
+/**
+ * Phần metadata của bài, không kèm `content`.
+ *
+ * Component client (trang chủ, danh sách notes, khối "bài khác") chỉ nhận loại
+ * này qua props. Nếu chúng import thẳng `BlogPost` từ registry thì toàn bộ nội
+ * dung mọi bài — kể cả KaTeX của bài notes — bị đóng gói vào bundle trình duyệt.
+ */
+export type PostSummary = Omit<BlogPost, "content">;
+
+export function toSummary(post: BlogPost): PostSummary {
+  return {
+    slug: post.slug,
+    date: post.date,
+    category: post.category,
+    title: post.title,
+    readTime: post.readTime,
+    description: post.description,
+    section: post.section,
+  };
+}

@@ -120,6 +120,7 @@ export const copy = {
     authorBio:
       "Backend engineer working on e-commerce automation, subscription billing and multi-marketplace API integration (Shopee, TikTok Shop, Lazada).",
     otherPosts: "Other posts",
+    authorRole: "E-commerce API Developer",
     ctaTitle: "Need an integration?",
     ctaBody:
       "If you are building order or inventory sync against Shopee, TikTok Shop or Lazada, get in touch.",
@@ -137,6 +138,11 @@ export const copy = {
       "These articles are structured study notes and independent verifications from academic coursework, separate from production backend benchmarks.",
     otherNotes: "Other study notes",
     emptyNotice: "No study notes published yet. Check back soon.",
+    authorRole: "CS Master's Student • Backend Dev",
+    pageTitle: "Curated Study Notes & Verifications",
+    scopeLabel: "Scope & Commitment",
+    readNote: "Read note",
+    breadcrumb: "Study Notes",
   },
   footer: {
     rights: "All rights reserved.",

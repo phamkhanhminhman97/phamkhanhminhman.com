@@ -70,6 +70,17 @@ export default function TableOfContents({
 
       setItems(parsedItems);
 
+      // Id vừa được gán ở trên khi tiêu đề nằm trong component tự viết (server
+      // không gán được). Trình duyệt đã bỏ lỡ neo lúc tải trang, nên cuộn tới đó
+      // ngay. Nếu id đã có từ HTML tĩnh thì trình duyệt cuộn rồi, scrollY > 0.
+      if (window.location.hash && window.scrollY < 8) {
+        try {
+          document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView();
+        } catch {
+          // Hash không giải mã được: bỏ qua, không phải neo hợp lệ.
+        }
+      }
+
       if (parsedItems.length > 0) {
         setActiveId(parsedItems[0].id);
       }

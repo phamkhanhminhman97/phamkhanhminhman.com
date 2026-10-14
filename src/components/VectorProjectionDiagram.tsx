@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { InlineMath } from "./Math";
+
+const DESCRIPTIONS = {
+  projection:
+    "Plane with vectors a = (3, 4) and b = (4, 3). The shadow of a on b is the vector (3.84, 2.88) of length 4.8; what is left of a after removing the shadow is perpendicular to b.",
+  orthogonal:
+    "Plane with vectors a = (3, 4) and c = (-4, 3) at a right angle, so the shadow of a on c has length zero.",
+  all: "Plane with a = (3, 4), b = (4, 3) and c = (-4, 3), showing the shadow of a on b and the right angle between a and c.",
+} as const;
 
 /**
  * Geometric Vector Projection Diagram
@@ -11,8 +18,12 @@ import { InlineMath } from "./Math";
  * 2. Projection shadow proj_b(a) = (3.84, 2.88) with scalar length 4.8.
  * 3. Residual vector r = a - proj_b(a) = (-0.84, 1.12) perpendicular to b (90° right angle).
  * 4. Orthogonal vector c = (-4, 3) with a · c = 0 (zero shadow).
+ *
+ * Component client này chỉ giữ SVG và các tab. Thẻ công thức bên dưới do server
+ * dựng (VectorProjectionCards) và truyền vào qua "cards": import KaTeX ở đây thì
+ * thư viện (80 KB gzip) bị tải xuống trình duyệt chỉ để hiện vài công thức tĩnh.
  */
-export function VectorProjectionDiagram() {
+export function VectorProjectionDiagram({ cards }: { cards: React.ReactNode }) {
   const [activeTab, setActiveTab] = useState<"projection" | "orthogonal" | "all">("projection");
 
   // Coordinate conversion:
@@ -55,7 +66,7 @@ export function VectorProjectionDiagram() {
   };
 
   return (
-    <div className="my-6 border border-zinc-200/90 rounded-xl bg-white shadow-sm overflow-hidden not-prose">
+    <div className="my-6 border border-zinc-200/90 rounded-xl bg-white shadow-sm overflow-hidden not-prose text-left">
       {/* Header with interactive toggles */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-zinc-50/90 border-b border-zinc-200 text-xs">
         <div className="flex items-center gap-2">
@@ -70,6 +81,7 @@ export function VectorProjectionDiagram() {
         <div className="flex items-center gap-1 bg-zinc-200/80 p-0.5 rounded-lg text-[11px] font-medium font-sans">
           <button
             type="button"
+            aria-pressed={activeTab === "projection"}
             onClick={() => setActiveTab("projection")}
             className={`px-2.5 py-1 rounded transition-colors ${
               activeTab === "projection"
@@ -81,6 +93,7 @@ export function VectorProjectionDiagram() {
           </button>
           <button
             type="button"
+            aria-pressed={activeTab === "orthogonal"}
             onClick={() => setActiveTab("orthogonal")}
             className={`px-2.5 py-1 rounded transition-colors ${
               activeTab === "orthogonal"
@@ -92,6 +105,7 @@ export function VectorProjectionDiagram() {
           </button>
           <button
             type="button"
+            aria-pressed={activeTab === "all"}
             onClick={() => setActiveTab("all")}
             className={`px-2.5 py-1 rounded transition-colors ${
               activeTab === "all"
@@ -108,13 +122,15 @@ export function VectorProjectionDiagram() {
       <div className="p-2 sm:p-4 bg-[#fafafa] flex justify-center">
         <svg
           viewBox="0 0 680 400"
+          role="img"
+          aria-label={DESCRIPTIONS[activeTab]}
           className="w-full h-auto max-w-[680px] select-none"
           style={{ maxHeight: "420px" }}
         >
           <defs>
             {/* Grid pattern */}
             <pattern
-              id="grid"
+              id="vpd-grid"
               width={scale}
               height={scale}
               patternUnits="userSpaceOnUse"
@@ -131,7 +147,7 @@ export function VectorProjectionDiagram() {
 
             {/* Arrowhead markers */}
             <marker
-              id="arrow-red"
+              id="vpd-arrow-red"
               viewBox="0 0 10 10"
               refX="8"
               refY="5"
@@ -142,7 +158,7 @@ export function VectorProjectionDiagram() {
               <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#dc2626" />
             </marker>
             <marker
-              id="arrow-blue"
+              id="vpd-arrow-blue"
               viewBox="0 0 10 10"
               refX="8"
               refY="5"
@@ -153,7 +169,7 @@ export function VectorProjectionDiagram() {
               <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#2563eb" />
             </marker>
             <marker
-              id="arrow-purple"
+              id="vpd-arrow-purple"
               viewBox="0 0 10 10"
               refX="8"
               refY="5"
@@ -164,7 +180,7 @@ export function VectorProjectionDiagram() {
               <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#7c3aed" />
             </marker>
             <marker
-              id="arrow-green"
+              id="vpd-arrow-green"
               viewBox="0 0 10 10"
               refX="8"
               refY="5"
@@ -175,7 +191,7 @@ export function VectorProjectionDiagram() {
               <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#059669" />
             </marker>
             <marker
-              id="arrow-slate"
+              id="vpd-arrow-slate"
               viewBox="0 0 10 10"
               refX="8"
               refY="5"
@@ -188,7 +204,7 @@ export function VectorProjectionDiagram() {
           </defs>
 
           {/* Grid Background */}
-          <rect width="680" height="400" fill="url(#grid)" />
+          <rect width="680" height="400" fill="url(#vpd-grid)" />
 
           {/* Cartesian Axes */}
           <line
@@ -312,7 +328,7 @@ export function VectorProjectionDiagram() {
                 strokeWidth="6"
                 strokeLinecap="round"
                 opacity="0.85"
-                markerEnd="url(#arrow-purple)"
+                markerEnd="url(#vpd-arrow-purple)"
               />
 
               {/* Perpendicular drop line (Residual r = a - proj) */}
@@ -324,7 +340,7 @@ export function VectorProjectionDiagram() {
                 stroke="#64748b"
                 strokeWidth="1.75"
                 strokeDasharray="4 4"
-                markerEnd="url(#arrow-slate)"
+                markerEnd="url(#vpd-arrow-slate)"
               />
 
               {/* Right-angle 90° square at (3.84, 2.88) */}
@@ -410,12 +426,12 @@ export function VectorProjectionDiagram() {
                 y2={svgC.y}
                 stroke="#059669"
                 strokeWidth="3"
-                markerEnd="url(#arrow-green)"
+                markerEnd="url(#vpd-arrow-green)"
               />
 
               {/* 90° angle arc between a = (3, 4) and c = (-4, 3) */}
               <path
-                d={`M ${toSvgX(1.1 * 0.6)} ${toSvgY(1.1 * 0.8)} A 55 55 0 0 1 ${toSvgX(-1.1 * 0.8)} ${toSvgY(1.1 * 0.6)}`}
+                d={`M ${toSvgX(1.1 * 0.6)} ${toSvgY(1.1 * 0.8)} A 55 55 0 0 0 ${toSvgX(-1.1 * 0.8)} ${toSvgY(1.1 * 0.6)}`}
                 fill="none"
                 stroke="#059669"
                 strokeWidth="1.5"
@@ -467,7 +483,7 @@ export function VectorProjectionDiagram() {
             y2={svgB.y}
             stroke="#2563eb"
             strokeWidth="3.5"
-            markerEnd="url(#arrow-blue)"
+            markerEnd="url(#vpd-arrow-blue)"
           />
           <g transform={`translate(${svgB.x + 8}, ${svgB.y + 4})`}>
             <text
@@ -494,7 +510,7 @@ export function VectorProjectionDiagram() {
             y2={svgA.y}
             stroke="#dc2626"
             strokeWidth="3.5"
-            markerEnd="url(#arrow-red)"
+            markerEnd="url(#vpd-arrow-red)"
           />
           <g transform={`translate(${svgA.x - 30}, ${svgA.y - 12})`}>
             <text
@@ -518,41 +534,8 @@ export function VectorProjectionDiagram() {
         </svg>
       </div>
 
-      {/* Explanatory cards underneath */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-zinc-50 border-t border-zinc-200 text-xs">
-        <div className="p-2.5 bg-white rounded-lg border border-blue-100 shadow-2xs space-y-1">
-          <div className="flex items-center gap-1.5 font-sans font-bold text-blue-900">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
-            <span>Target Axis: <InlineMath math="\mathbf{b} = (4, 3)" /></span>
-          </div>
-          <p className="text-zinc-600 text-[11px] leading-relaxed">
-            Magnitude <InlineMath math="\|\mathbf{b}\| = 5.0" />. Acts as the line onto which
-            the shadow is cast. The direction unit is <InlineMath math="\hat{\mathbf{b}} = (0.8, 0.6)" />.
-          </p>
-        </div>
-
-        <div className="p-2.5 bg-white rounded-lg border border-purple-100 shadow-2xs space-y-1">
-          <div className="flex items-center gap-1.5 font-sans font-bold text-purple-900">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block" />
-            <span>Projected Shadow: <InlineMath math="\text{proj}_{\mathbf{b}}(\mathbf{a})" /></span>
-          </div>
-          <p className="text-zinc-600 text-[11px] leading-relaxed">
-            Shadow length is <InlineMath math="\frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{b}\|} = \frac{24}{5} = 4.80" />.
-            Vector coordinate is <InlineMath math="(3.84, 2.88)" />.
-          </p>
-        </div>
-
-        <div className="p-2.5 bg-white rounded-lg border border-emerald-100 shadow-2xs space-y-1">
-          <div className="flex items-center gap-1.5 font-sans font-bold text-emerald-900">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
-            <span>Orthogonal: <InlineMath math="\mathbf{a} \cdot \mathbf{c} = 0" /></span>
-          </div>
-          <p className="text-zinc-600 text-[11px] leading-relaxed">
-            Vector <InlineMath math="\mathbf{c} = (-4, 3)" /> is at <InlineMath math="90^\circ" /> to <InlineMath math="\mathbf{a}" />.
-            Light shining perpendicular produces exactly zero shadow (zero mutual info).
-          </p>
-        </div>
-      </div>
+      {/* Thẻ công thức do server dựng, xem VectorProjectionCards */}
+      {cards}
     </div>
   );
 }

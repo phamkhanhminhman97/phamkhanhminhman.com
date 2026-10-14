@@ -63,3 +63,12 @@ body {
   border-top: none;
   padding-top: 0;
 }
+
+/* Câu "chưa có ghi chú" ở /notes: luôn nằm trong DOM, chỉ hiện khi danh sách rỗng
+   (chưa có bài, hoặc Worker đã gỡ hết bài đang ẩn). */
+.notes-empty {
+  display: none;
+}
+.blog-list:empty + .notes-empty {
+  display: block;
+}

@@ -1,28 +1,38 @@
 import React from "react";
 import Link from "next/link";
-import { blogPosts, notesPosts, type BlogPost } from "@/data/blog";
+import type { BlogPost, PostSummary } from "@/data/blog/types";
 import { formatDate } from "@/lib/date";
 import { copy } from "@/content/copy";
 import { profile } from "@/data/profile";
 import { SITE_DOMAIN } from "@/lib/site";
+import { withHeadingIds } from "@/lib/heading-ids";
 import CodeBlockEnhancer from "@/components/CodeBlockEnhancer";
+import RelatedPosts from "@/components/RelatedPosts";
 import TableOfContents from "@/components/TableOfContents";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 
 export default function BlogArticle({
   post,
+  related,
 }: {
   post: BlogPost;
+  /**
+   * Bài cùng mục (đã loại bài hiện tại), do page truyền xuống. BlogArticle cố ý
+   * không import registry bài: làm vậy là kéo cả bài notes (KaTeX, hình minh hoạ)
+   * vào mọi trang blog. Xem `src/data/blog/index.ts`.
+   */
+  related: PostSummary[];
 }) {
   const d = copy;
-  const Content = post.content;
+  // Gán id cho tiêu đề ngay trong HTML tĩnh để link có neo (#muc) hoạt động.
+  const content = withHeadingIds(post.content());
   const isNotes = post.section === "notes";
   const parentPath = isNotes ? "/notes" : "/";
   const parentLabel = isNotes ? d.nav.backToNotes : d.nav.backToHome;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 font-sans selection:bg-zinc-200">
-      
+
       {/* Header back navigation */}
       <header className="flex items-center justify-between border-b border-zinc-200 pb-4 mb-8">
         <Link
@@ -38,10 +48,10 @@ export default function BlogArticle({
 
       {/* Main layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        
+
         {/* Left Column (8 cols): Article Content */}
         <article className="lg:col-span-8">
-          
+
           {/* Metadata */}
           <div className="flex items-center gap-2 mb-3 text-xs font-mono text-zinc-500 uppercase tracking-wide">
             <span className="bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded text-[10px] text-red-700 font-semibold">
@@ -67,9 +77,7 @@ export default function BlogArticle({
 
           {/* Render article content */}
           <div id="article-content" className="space-y-6">
-            <CodeBlockEnhancer>
-              <Content />
-            </CodeBlockEnhancer>
+            <CodeBlockEnhancer>{content}</CodeBlockEnhancer>
           </div>
 
           <div className="editorial-border-double mt-12 py-4 flex justify-between items-center text-xs font-mono text-zinc-500">
@@ -82,7 +90,7 @@ export default function BlogArticle({
 
         {/* Right Column (4 cols): Sidebar info */}
         <aside className="lg:col-span-4 lg:border-l lg:border-zinc-200 lg:pl-6 space-y-8">
-          
+
           {/* Desktop Sticky Table of Contents */}
           <TableOfContents mode="desktop" />
 
@@ -93,7 +101,7 @@ export default function BlogArticle({
             </h3>
             <p className="font-sans font-bold text-sm text-zinc-900 mb-0.5">Phạm Khánh Minh Mẫn</p>
             <p className="font-mono text-[10px] text-zinc-500 mb-2">
-              {isNotes ? "CS Master's Student • Backend Dev" : "E-commerce API Developer"}
+              {isNotes ? d.notes.authorRole : d.blog.authorRole}
             </p>
             <p className="font-serif-body text-xs text-zinc-600 leading-relaxed">
               {d.blog.authorBio}
@@ -101,34 +109,13 @@ export default function BlogArticle({
           </section>
 
           {/* Related Articles / Notes */}
-          {(() => {
-            const related = (isNotes ? notesPosts : blogPosts).filter(
-              (other) => other.slug !== post.slug
-            );
-            if (related.length === 0) return null;
-            return (
-              <section>
-                <h3 className="font-mono font-bold text-xs text-zinc-900 border-b border-zinc-200 pb-1 mb-3 uppercase">
-                  {isNotes ? d.notes.otherNotes : d.blog.otherPosts}
-                </h3>
-                <ul className="space-y-3 font-sans text-xs">
-                  {related.map((other) => (
-                    <li key={other.slug}>
-                      <Link
-                        href={`/${isNotes ? "notes" : "blog"}/${other.slug}`}
-                        className="font-bold text-zinc-800 hover:text-red-700 leading-snug block transition-colors"
-                      >
-                        {other.title}
-                      </Link>
-                      <span className="font-mono text-[9px] text-zinc-400 uppercase mt-0.5 block">
-                        {formatDate(other.date)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            );
-          })()}
+          {related.length > 0 && (
+            <RelatedPosts
+              title={isNotes ? d.notes.otherNotes : d.blog.otherPosts}
+              basePath={isNotes ? "/notes" : "/blog"}
+              items={related}
+            />
+          )}
 
           {/* Context CTA or Academic Disclaimer */}
           {isNotes ? (

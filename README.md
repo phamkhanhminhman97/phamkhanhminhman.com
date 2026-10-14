@@ -92,7 +92,7 @@ src/
 ├── components/
 │   └── NpmStatsCard.tsx      # Client component: npm download stats
 └── data/
-    ├── blog.tsx              # Dữ liệu và nội dung blog
+    ├── blog/                 # index.ts (blog), notes.ts (notes), all.ts (server), posts/<slug>.tsx
     ├── profile.tsx           # Dữ liệu profile/CV
     └── projects.tsx          # Dữ liệu các thư viện npm
 ```
@@ -292,6 +292,14 @@ Chỉ các đường dẫn khai trong `assets.run_worker_first` mới đi qua Wo
 
 **Ẩn là ẩn thật:** bài bị gỡ khỏi HTML, khỏi RSS, khỏi sitemap, và URL của nó trả
 404 — không phải chỉ bị giấu bằng CSS.
+
+Giới hạn đã đo: ẩn một bài không xoá **metadata** của nó (slug, ngày, tiêu đề, mô tả) khỏi dữ liệu
+Next.js (`self.__next_f`) mà trang liệt kê nhúng sẵn, ví dụ ở `/notes` và trang chủ. Thân bài thì không nằm
+trong các trang đó. Muốn xoá hẳn một bài thì gỡ nó khỏi `index.ts` / `notes.ts` rồi deploy.
+
+Trang HTML, RSS và sitemap qua Worker **không** trả `ETag` / `Last-Modified` và bỏ header điều kiện của request
+(xem `isDynamicPage` trong `worker/index.ts`). Nếu giữ validator của file tĩnh, người xem đã lưu trang sẽ nhận
+304 và không bao giờ thấy trạng thái ẩn / ghim mới.
 
 ### Một chi tiết dễ vấp: hydration
 

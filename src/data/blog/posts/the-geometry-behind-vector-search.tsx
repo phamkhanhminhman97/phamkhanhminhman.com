@@ -2,6 +2,7 @@ import React from "react";
 import type { BlogPost } from "../types";
 import { BlockMath, InlineMath } from "@/components/Math";
 import { VectorProjectionDiagram } from "@/components/VectorProjectionDiagram";
+import { VectorProjectionCards } from "@/components/VectorProjectionCards";
 
 const post: BlogPost = {
   slug: "the-geometry-behind-vector-search",
@@ -22,7 +23,12 @@ const post: BlogPost = {
           Distilled from Course 02 (Linear Algebra, §1) and Course 10 (Systems Around Models, §3)
           in my CS Master&apos;s curriculum. Foundational references: Deisenroth et al.,{" "}
           <em>Mathematics for Machine Learning</em> (§6.4.6, pp. 195–197); Grant Sanderson,{" "}
-          <em>3Blue1Brown: Essence of Linear Algebra</em> (Ch. 1 &amp; 9); Timkey &amp; van Schijndel (2021).
+          <em>3Blue1Brown: Essence of Linear Algebra</em>{" "}(Ch. 1 &amp; 9); Ethayarajh (2019);
+          Timkey &amp; van Schijndel (2021).
+        </p>
+        <p className="mt-2">
+          Every number and code block below was run by me: Python 3.9 with NumPy 2.0.2, and PostgreSQL 18.6 with
+          pgvector 0.8.7 in Docker on an Apple-silicon Mac. Where I did not measure something, the text says so.
         </p>
       </div>
 
@@ -37,8 +43,8 @@ const post: BlogPost = {
         For most tasks, computing <code>cosine_similarity(u, v)</code> feels like invoking a routine library helper.
         However, treating high-dimensional representations purely as flat arrays hides three fundamental properties:
         why the dot product is geometrically a physical shadow, why Euclidean distance and cosine similarity produce
-        identical ranking under unit normalization, and why uncentered vector spaces suffer from the common{" "}
-        <strong>anisotropy trap</strong>.
+        the same ranking under unit normalization, and why vectors that share a large common offset can make every
+        pair look alike (the <strong>anisotropy trap</strong>).
       </p>
 
       <h2 className="font-sans font-bold text-lg text-black pt-4">
@@ -99,7 +105,7 @@ const post: BlogPost = {
       </p>
 
       {/* Interactive Geometric Visualization */}
-      <VectorProjectionDiagram />
+      <VectorProjectionDiagram cards={<VectorProjectionCards />} />
 
       <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-sans space-y-2 my-4">
         <p className="font-bold text-zinc-900 uppercase tracking-wide text-[11px]">
@@ -148,17 +154,20 @@ const post: BlogPost = {
         <InlineMath math="\mathbf{c} = (-4, 3)" />, where{" "}
         <InlineMath math="\mathbf{a} \cdot \mathbf{c} = -12 + 12 = 0" />), the projection produces{" "}
         <InlineMath math="\operatorname{proj}_{\mathbf{c}}(\mathbf{a}) = (0, 0)" />.
-        The shadow length is exactly zero. In geometric information theory,{" "}
-        <strong>orthogonality means zero shared information</strong>.
+        The shadow length is exactly zero: <strong>no part of <InlineMath math="\mathbf{a}" />{" "}points along{" "}
+        <InlineMath math="\mathbf{c}" /></strong>. That is a statement about direction only, not about information.
+        Take <InlineMath math="x = (-1, 0, 1)" /> and <InlineMath math="y = x^2 = (1, 0, 1)" />: their dot product
+        is 0 and so is their correlation, yet <InlineMath math="y" /> is fully determined by{" "}
+        <InlineMath math="x" />.
       </p>
 
       <p>
-        This geometric property explains why semantic search works in high dimensions. In 2D, two random vectors
-        have broad cosine dispersion (standard deviation <InlineMath math="\approx 0.71" />). However, in 768 dimensions, the concentration of
-        measure dictates that random vectors have a standard deviation of approximately{" "}
-        <InlineMath math="1 / \sqrt{768} \approx 0.0361" />. Almost all random pairs in 768D are naturally near-orthogonal
-        (cosine between <InlineMath math="-0.07" />{" "}and <InlineMath math="+0.07" />). Consequently, two dense embeddings sharing a cosine above 0.70 is an
-        astronomical statistical anomaly unless they share real semantic alignment.
+        Dimension changes what &quot;nearly orthogonal&quot; means. For two independent random directions the cosine has
+        a standard deviation of <InlineMath math="1/\sqrt{d}" />: about <InlineMath math="0.71" /> in 2D, but only{" "}
+        <InlineMath math="1/\sqrt{768} \approx 0.036" /> in 768D. Unrelated random vectors therefore sit close to
+        cosine 0 in high dimensions. That is the baseline for <em>isotropic random</em> vectors only. Real embedding
+        spaces are not isotropic (section 4), so a useful similarity threshold has to be calibrated on your own corpus,
+        not read off this baseline.
       </p>
 
       <h2 className="font-sans font-bold text-lg text-black pt-4">
@@ -179,13 +188,15 @@ const post: BlogPost = {
       <p>
         Under Euclidean distance, <InlineMath math="\|\mathbf{q} - \mathbf{d}_2\| = 9.0" />{" "}appears distant, penalizing the longer article
         solely due to word repetition. Meanwhile, cosine similarity yields <code>1.0</code>{" "}for both, preserving
-        semantic alignment regardless of length.
+        semantic alignment regardless of length. That holds for raw, unnormalized vectors such as word counts. Once
+        both documents are scaled to unit length they become the same point, and Euclidean distance gives 0 as well.
       </p>
 
       <p>
-        However, in modern dense retrieval systems, <strong>every document and query embedding is normalized
-        to unit length (L2 norm = 1.0)</strong> before indexing. Under unit normalization, Euclidean distance
-        and cosine similarity are not different metrics—they are <strong>mathematically monotonic transforms</strong>:
+        Many embedding models return unit-length vectors (check your model&apos;s documentation); if yours does not,
+        you can normalize it yourself before indexing. Once the query and the documents all have{" "}
+        <InlineMath math="\|\mathbf{u}\| = 1" />, Euclidean distance and cosine similarity are not different metrics:
+        one is a <strong>monotonic transform</strong> of the other.
       </p>
 
       <BlockMath
@@ -244,8 +255,43 @@ const post: BlogPost = {
       </div>
 
       <p>
-        On normalized vectors, <strong>nearest-neighbor rankings under Euclidean distance and cosine similarity
-        are 100% identical</strong>, right down to the tie-breakers.
+        So on unit-length vectors, ranking by smallest Euclidean distance and by largest cosine similarity gives the
+        same order in exact arithmetic. I checked this on random data, comparing the full top-10 lists for 50 queries
+        against 10,000 documents in 768 dimensions:
+      </p>
+
+      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
+{`import numpy as np
+
+rng = np.random.default_rng(1)
+D = rng.normal(size=(10_000, 768))   # 10,000 documents
+Q = rng.normal(size=(50, 768))       # 50 queries
+
+def top10(scores):                   # higher score = closer
+    return np.argsort(-scores, axis=1)[:, :10]
+
+def compare(Q, D, label):
+    cos = (Q @ D.T) / np.outer(np.linalg.norm(Q, axis=1), np.linalg.norm(D, axis=1))
+    l2 = np.sqrt((Q ** 2).sum(1)[:, None] + (D ** 2).sum(1)[None, :] - 2 * Q @ D.T)
+    same = (top10(cos) == top10(-l2)).all(axis=1).sum()
+    print(f"{label}: identical top-10 for {same}/50 queries")
+
+compare(Q, D, "raw vectors    ")
+Qn = Q / np.linalg.norm(Q, axis=1, keepdims=True)
+Dn = D / np.linalg.norm(D, axis=1, keepdims=True)
+compare(Qn, Dn, "unit-normalized")`}
+      </pre>
+
+      <p>Output:</p>
+
+      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
+{`raw vectors    : identical top-10 for 0/50 queries
+unit-normalized: identical top-10 for 50/50 queries`}
+      </pre>
+
+      <p>
+        Two caveats. Floating-point ties can be ordered differently by different implementations, and approximate
+        indexes such as HNSW return an approximation of this ranking, so what you measure there is recall, not identity.
       </p>
 
       <h2 className="font-sans font-bold text-lg text-black pt-4">
@@ -267,19 +313,20 @@ const post: BlogPost = {
       </p>
 
       <p>
-        The reason lies in PostgreSQL query execution internals. Standard index scans (including B-tree, GiST,
-        IVFFlat, and HNSW) only support ordering by expressions in <strong>ascending order (ASC)</strong>.
-        When searching for the closest semantic match, you want the <em>largest</em> dot product.
-        By negating the dot product (<code>-(u · v)</code>), the greatest similarity becomes the smallest numerical
-        value, allowing PostgreSQL index scans to evaluate <code>ORDER BY embedding &lt;#&gt; query ASC LIMIT 10</code>{" "}
-        without requiring descending index scans.
+        The pgvector README gives the reason: <code>&lt;#&gt;</code> returns the negative inner product because
+        Postgres only supports ASC-order index scans on operators. The query therefore has to be{" "}
+        <code>ORDER BY embedding &lt;#&gt; q ASC</code>, and the row with the <em>largest</em> inner product must have
+        the <em>smallest</em> value. I checked the effect on PostgreSQL 18.6 with pgvector 0.8.7: with the HNSW index
+        below, the ASC query uses an index scan, while <code>DESC</code> falls back to a sort over a sequential scan.
+        The limit is specific to these operator index scans: a plain B-tree index serves{" "}
+        <code>ORDER BY x DESC</code> with a backward scan.
       </p>
 
       <p>
-        When embeddings are pre-normalized to unit length (<code>||v|| = 1.0</code>), the cosine denominator
-        <code>||u|| * ||v||</code>{" "}equals <code>1.0</code>. Consequently, calculating cosine similarity collapses
-        into a raw inner product. Executing <code>&lt;#&gt;</code>{" "}avoids square root and norm operations
-        entirely, significantly improving throughput on exact scans and index traversals.
+        With unit-length vectors the cosine denominator <code>||u|| * ||v||</code> is 1, so cosine similarity equals the
+        inner product and <code>(embedding &lt;#&gt; q) * -1</code> is the cosine similarity: over 2,000 random unit
+        vectors the largest difference from <code>1 - (embedding &lt;=&gt; q)</code> was 6e-8. The flip side is that an
+        index built with <code>vector_ip_ops</code> only ranks by cosine if you normalize at write time.
       </p>
 
       <p>
@@ -309,12 +356,43 @@ ORDER BY embedding <#> $1 ASC
 LIMIT 10;`}
       </pre>
 
+      <p>
+        The plans for this query on 2,000 random unit vectors (trimmed).{" "}
+        <code>Disabled: true</code> means the planner had no index path for <code>DESC</code> and used the only plan left
+        even with sequential scans switched off:
+      </p>
+
+      <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
+{`ORDER BY embedding <#> q ASC LIMIT 10
+ Limit
+   ->  Index Scan using documents_embedding_hnsw_idx on documents
+         Order By: (embedding <#> '[...]'::vector)
+
+ORDER BY embedding <#> q DESC LIMIT 10        -- with enable_seqscan = off
+ Limit
+   ->  Sort
+         ->  Seq Scan on documents
+               Disabled: true
+
+-- for comparison, a plain B-tree index on x:  ORDER BY x DESC LIMIT 5
+ Limit
+   ->  Index Only Scan Backward using t_x_idx on t`}
+      </pre>
+
+      <p>
+        Does the simpler formula buy speed? On an exact scan I could not see it. With 20,000 rows of 768 dimensions and
+        no index, a top-10 query took a median of about 20.4 ms with <code>&lt;#&gt;</code>, 20.9 ms with{" "}
+        <code>&lt;=&gt;</code> and 21.2 ms with <code>&lt;-&gt;</code> (5 runs each, one worker, Docker on an
+        Apple-silicon Mac). The gaps are inside run-to-run noise because the scan is bound by reading the vectors, not
+        by the arithmetic. I did not measure HNSW or other hardware.
+      </p>
+
       <h2 className="font-sans font-bold text-lg text-black pt-4">
-        4. The Anisotropy Trap: When Cosine Always Returns 0.90
+        4. The Anisotropy Trap: When Every Pair Looks Similar
       </h2>
 
       <p>
-        In <em>Mathematics for Machine Learning</em> (§6.4.6, p. 196), inner products are mapped directly to statistics:
+        In <em>Mathematics for Machine Learning</em> (§6.4.6), inner products are mapped directly to statistics:
         for random variables with zero expectation, the inner product <InlineMath math="\langle X, Y \rangle := \text{Cov}[X, Y]" />{" "}satisfies
         all inner product axioms. Under zero-mean centering:
       </p>
@@ -327,14 +405,18 @@ LIMIT 10;`}
       </ul>
 
       <p>
-        Crucially, this equivalence holds <strong>only if vectors are centered around zero</strong>.
-        In uncentered representations, cosine similarity exhibits a severe pathological behavior known as{" "}
-        <strong>anisotropy</strong> (Ethayarajh, 2019; Timkey &amp; van Schijndel, 2021).
+        This mapping holds <strong>only for centered variables</strong>. Cosine similarity ignores the mean of the data,
+        so if every vector shares a large common offset, cosine stops behaving like a correlation and every pair
+        looks similar. Ethayarajh (2019) and Timkey &amp; van Schijndel (2021) describe the practical form of this for
+        contextual word embeddings in language models, under the names <strong>anisotropy</strong> and{" "}
+        <strong>rogue dimensions</strong>: a few coordinates with very large magnitude and variance dominate the cosine. I
+        only reproduce the mechanism on synthetic data below. I did not measure a real retrieval model, so I cannot
+        tell you what range of cosine values to expect from yours.
       </p>
 
       <p>
-        When an embedding space drifts away from the origin along even a single &quot;rogue dimension&quot;,
-        all vectors point into a narrow high-dimensional cone. Consider this reproduction:
+        Take 2,000 independent random vectors in 64 dimensions, then shift one coordinate far from the origin and
+        amplify it. This is a constructed example, not a model of any real embedding space:
       </p>
 
       <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
@@ -342,40 +424,47 @@ LIMIT 10;`}
 
 def pairwise_cosine(E):
     En = E / np.linalg.norm(E, axis=1, keepdims=True)
-    C  = En @ En.T
+    C = En @ En.T
     return C[np.triu_indices(len(E), k=1)]
 
-rng = np.random.default_rng(0)
-# 2,000 completely independent vectors in 64 dimensions
-E_clean = rng.normal(size=(2000, 64))
-c_clean = pairwise_cosine(E_clean)
-print(f"Clean:   mean={c_clean.mean():+.4f}  std={c_clean.std():.4f}  >0.90: {(c_clean > 0.90).mean()*100:.1f}%")
+def report(name, E):
+    c = pairwise_cosine(E)
+    print(f"{name:22s} mean={c.mean():+.4f}  std={c.std():.4f}  min={c.min():+.4f}  >0.90: {(c > 0.90).mean() * 100:.4f}%")
 
-# Introduce a single shifted dominant dimension
+rng = np.random.default_rng(0)
+E_clean = rng.normal(size=(2000, 64))          # independent coordinates
 E_rogue = E_clean.copy()
-E_rogue[:, 0] = (E_rogue[:, 0] + 12.0) * 3.0
-c_rogue = pairwise_cosine(E_rogue)
-print(f"Rogue:   mean={c_rogue.mean():+.4f}  std={c_rogue.std():.4f}  >0.90: {(c_rogue > 0.90).mean()*100:.1f}%")`}
+E_rogue[:, 0] = (E_rogue[:, 0] + 12.0) * 3.0   # one dimension shifted and amplified
+
+mu = E_rogue.mean(axis=0)
+report("clean", E_clean)
+report("rogue", E_rogue)
+report("rogue, mean-centered", E_rogue - mu)
+report("rogue, z-scored", (E_rogue - mu) / E_rogue.std(axis=0))`}
       </pre>
 
       <p>Output:</p>
 
       <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-lg font-mono text-xs overflow-x-auto leading-relaxed">
-{`Clean:   mean=-0.0000  std=0.1251  >0.90: 0.0%
-Rogue:   mean=+0.9525  std=0.0098  >0.90: 100.0%`}
+{`clean                  mean=-0.0000  std=0.1251  min=-0.5498  >0.90: 0.0000%
+rogue                  mean=+0.9525  std=0.0098  min=+0.8845  >0.90: 99.9961%
+rogue, mean-centered   mean=-0.0005  std=0.1527  min=-0.6931  >0.90: 0.0000%
+rogue, z-scored        mean=-0.0005  std=0.1250  min=-0.5505  >0.90: 0.0000%`}
       </pre>
 
       <p>
-        In the simulated rogue space, <strong>100% of completely independent pairs score a cosine similarity above 0.90</strong>,
-        with a tiny standard deviation of <code>0.0098</code>.
-        The single dominant dimension accounts for 100% of the dot product, suffocating the remaining 63 informative dimensions.
+        Out of 1,999,000 pairs of completely independent vectors, 99.9961% score above 0.90 (the smallest cosine is
+        0.8845). The one shifted coordinate dominates every dot product. Subtracting the mean removes the effect in
+        this example: no pair exceeds 0.90 and the spread of
+        cosines (0.153) returns to the same order as the clean data (0.125). Dividing each coordinate by its standard
+        deviation as well recovers the clean spread almost exactly (0.1250 against 0.1251).
       </p>
 
       <p>
-        If your production search system displays uniformly high similarity scores (e.g. every pair scoring between
-        0.87 and 0.93 regardless of relevance), adjusting your threshold is rarely the fix.
-        Applying <strong>mean centering across the corpus</strong> (and re-normalizing unit length) restores isotropic
-        contrast across the manifold.
+        That is a recipe to <em>try</em> when scores look compressed, not a guarantee. Compute the mean on your own
+        corpus, subtract it from <strong>both the documents and every query</strong>, normalize to unit length again,
+        and then compare retrieval quality on questions you have labelled. Whether it helps a given model is an
+        empirical question I have not tested.
       </p>
 
       <h2 className="font-sans font-bold text-lg text-black pt-4">
@@ -410,7 +499,7 @@ c = np.array([-4.0, 3.0])
 
 # 1. Dot product and cosine verification
 assert abs(dot(a, b) - 24.0) < 1e-9
-assert abs(dot(a, c) - 0.0)  < 1e-9   # Orthogonal: zero shared information
+assert abs(dot(a, c) - 0.0)  < 1e-9   # Orthogonal: the shadow has zero length
 assert abs(dot(b, c) - (-7.0)) < 1e-9
 
 assert abs(cosine(a, b) - 0.96)  < 1e-9
@@ -438,23 +527,25 @@ print("All geometric assertions verified successfully.")`}
 
       <ul className="list-disc pl-5 space-y-2 text-sm">
         <li>
-          <strong>Dot product is a physical shadow</strong>:{" "}
+          <strong>The dot product measures how far one vector points along another</strong>:{" "}
           <InlineMath math="\mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\|\,\|\mathbf{v}\|\cos\theta" />.
-          Orthogonal vectors (<InlineMath math="\mathbf{u} \cdot \mathbf{v} = 0" />) cast zero shadow and share zero mutual information.
+          Zero means no component along the other vector. It does not mean the two are statistically independent.
         </li>
         <li>
-          <strong>Unit normalization guarantees equivalence</strong>: Under L2 normalization,{" "}
-          <InlineMath math="\|\mathbf{u} - \mathbf{v}\| = \sqrt{2 - 2\cos(\mathbf{u}, \mathbf{v})}" />.
-          Ranking by minimum Euclidean distance and maximum cosine similarity produces identical results.
+          <strong>On unit-length vectors, Euclidean distance and cosine give the same ranking</strong>:{" "}
+          <InlineMath math="\|\mathbf{u} - \mathbf{v}\| = \sqrt{2 - 2\cos(\mathbf{u}, \mathbf{v})}" />. I saw identical
+          top-10 lists for 50 of 50 queries, and for 0 of 50 on the same data without normalizing. Approximate indexes
+          return an approximation of that ranking.
         </li>
         <li>
-          <strong>PostgreSQL index scans require ASC</strong>: <code>pgvector</code>&apos;s{" "}<code>&lt;#&gt;</code>{" "}
-          operator returns <InlineMath math="-(\mathbf{u} \cdot \mathbf{v})" />{" "}to enable index traversal for maximum similarity using ascending scans.
+          <strong>pgvector&apos;s <code>&lt;#&gt;</code> is negative so that the ASC index scan finds the largest inner product</strong>.
+          I could not measure a speed difference between <code>&lt;#&gt;</code>, <code>&lt;=&gt;</code> and{" "}
+          <code>&lt;-&gt;</code> on an exact scan; the three were within noise.
         </li>
         <li>
-          <strong>Watch for anisotropy</strong>: Cosine matches statistical correlation only when centered at zero.
-          Uncentered manifolds cause similarity scores to cluster artificially near 1.0, which can be diagnosed and
-          rectified by corpus mean-centering.
+          <strong>Cosine compresses when all vectors share a large offset</strong>. On a synthetic example, subtracting the
+          mean (from documents and queries, then re-normalizing) removed the effect. Whether it improves retrieval on a real
+          model is something to test on your own labelled queries.
         </li>
       </ul>
     </div>
