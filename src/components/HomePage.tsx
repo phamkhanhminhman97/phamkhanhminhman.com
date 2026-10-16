@@ -354,6 +354,11 @@ export default function HomePage({ posts }: { posts: PostSummary[] }) {
             </Link>
           </li>
           <li>
+            <Link href="/syllabus" className="hover:text-black transition-colors py-1 block">
+              • {d.nav.syllabus}
+            </Link>
+          </li>
+          <li>
             <button
               onClick={() => scrollToSection("contact")}
               className="hover:text-black transition-colors py-1 cursor-pointer"

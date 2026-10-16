@@ -1,6 +1,6 @@
 /**
- * Every string the UI renders. The site is English-only: there is no locale
- * parameter, no dictionary lookup, and no translated variant to keep in sync.
+ * UI copy. The main site is English; the public syllabus preserves Vietnamese
+ * teaching material. There are no translated variants of the same page.
  */
 import { SITE_DOMAIN } from "@/lib/site";
 
@@ -11,9 +11,50 @@ export const copy = {
     about: "ABOUT & EXPERIENCE",
     blog: "TECHNICAL BLOG",
     notes: "STUDY NOTES",
+    syllabus: "SYLLABUS",
     contact: "CONTACT & LINKS",
     backToHome: "Back to Home",
     backToNotes: "Back to Notes",
+  },
+  syllabus: {
+    brand: "syllabus",
+    navigation: "Điều hướng giáo trình",
+    allCourses: "Giáo trình",
+    kicker: "TỰ HỌC / AI FOUNDATIONS",
+    hubTitle: "Học từ gốc.",
+    hubDescription: "Giáo trình tự học nền tảng AI: đọc từng bài, nhìn hình để hiểu ý nghĩa, rồi đi đến khái niệm và công thức.",
+    hubScope: "Hiện công khai môn Đại số tuyến tính. Các môn khác sẽ được bổ sung sau.",
+    courseNumber: "MÔN 02",
+    courseTitle: "Đại số tuyến tính",
+    courseDescription: "Từ mũi tên trên mặt phẳng đến cấu trúc của không gian. Hiểu phép biến đổi trước, viết công thức sau — rồi nối với embedding, PageRank và SVD.",
+    publicAccess: "Đọc tự do · không cần đăng nhập",
+    lessons: "Đi theo từng bài",
+    lesson: "Bài",
+    lessonUnit: "bài học",
+    search: "Tìm bài học",
+    searchPlaceholder: "Tên bài hoặc chủ đề: vector, PageRank, SVD…",
+    results: "bài phù hợp",
+    noResults: "Chưa tìm thấy bài phù hợp. Thử từ khoá ngắn hơn hoặc xoá ô tìm kiếm.",
+    readLesson: "Đọc bài",
+    handwrittenPdf: "PDF ghi tay",
+    pdfDescription: "Bản cô đọng: hình trước, công thức sau. Nền trắng, chữ đen.",
+    openPdf: "Mở PDF",
+    download: "Tải về",
+    pdfPending: "Bài giảng đầy đủ bên dưới. PDF ghi tay của bài này chưa có.",
+    unavailableNote: "Chữ gạch chấm là tham chiếu tới môn hoặc tài liệu chưa được đưa lên website.",
+    resume: "ĐANG ĐỌC",
+    continue: "Đọc tiếp",
+    deviceOnly: "Vị trí đọc được lưu trên trình duyệt này khi cho phép lưu trữ; không đồng bộ giữa các thiết bị.",
+    overview: "Mục tiêu, tài liệu tham khảo & bài tập tổng kết",
+    overviewShort: "Tổng quan môn học",
+    inThisLesson: "Trong bài này",
+    lessonNavigation: "Bài trước và bài tiếp theo",
+    previous: "Bài trước",
+    next: "Bài tiếp theo",
+    review: "Ôn tập & capstone",
+    sketchAlt: "Một vector trước và sau phép trượt ngang: lưới vuông trở thành lưới nghiêng, vector v biến thành Av.",
+    sketchCaption: "Một ma trận. Một hành động lên không gian.",
+    footer: "Ghi chép tự học · AI foundations · Tiếng Việt",
   },
   home: {
     metaTitle:

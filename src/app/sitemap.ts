@@ -3,6 +3,7 @@ import { blogPosts } from "@/data/blog";
 import { notesPosts } from "@/data/blog/notes";
 import { npmPackages } from "@/data/projects";
 import { SITE_URL as BASE_URL } from "@/lib/site";
+import { lessons, coursePath, courseUpdated } from "@/data/syllabus";
 
 export const dynamic = "force-static";
 
@@ -23,6 +24,18 @@ const NOTES_UPDATED = notesPosts.reduce(
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
+    ...["/syllabus", coursePath].map((path) => ({
+      url: `${BASE_URL}${path}`,
+      lastModified: new Date(courseUpdated),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
+    ...lessons.map((lesson) => ({
+      url: `${BASE_URL}${coursePath}/${lesson.slug}`,
+      lastModified: new Date(lesson.updated),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     {
       url: `${BASE_URL}/`,
       // Trang chủ đổi khi nội dung giới thiệu / danh sách mục đổi, không phải

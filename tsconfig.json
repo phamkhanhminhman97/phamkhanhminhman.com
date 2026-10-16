@@ -38,6 +38,7 @@
   ],
   "exclude": [
     "node_modules",
+    "DesignPattern-master",
     "worker",
     "worker-configuration.d.ts"
   ]
