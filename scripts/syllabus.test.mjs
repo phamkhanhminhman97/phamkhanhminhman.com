@@ -41,12 +41,13 @@ test("Unicode formulas, dollar signs and code fences stay as written", async () 
   assert.doesNotMatch(html, /katex/);
 });
 
-test("published snapshot has no local paths or scripts, and PDFs are the approved three", async () => {
+test("published snapshot has no local paths or scripts, and every lesson has its PDF", async () => {
   const text = await readFile(new URL("../src/data/syllabus/linear-algebra.json", import.meta.url), "utf8");
   const snapshot = JSON.parse(text);
   assert.doesNotMatch(text, /\/Users\/|<script|onerror=/i);
   assert.equal(snapshot.lessons.length, lessons.length);
-  assert.deepEqual(snapshot.lessons.filter((l) => l.pdf).map((l) => l.slug), lessons.slice(0, 3).map((l) => l.slug));
+  assert.deepEqual(snapshot.lessons.map((l) => l.pdf?.split("/").pop()), lessons.map((l) => l.pdfFile));
+  assert.ok(lessons.every((l) => /^mon-02-bai-\d{2}-ghi-tay\.pdf$/.test(l.pdfFile)));
   assert.equal(new Set(lessons.map((l) => l.slug)).size, lessons.length);
   // Markdown that failed to parse shows up as stray asterisks on the page.
   for (const page of [snapshot.overview, ...snapshot.lessons]) {

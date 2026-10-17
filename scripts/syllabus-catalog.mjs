@@ -14,6 +14,6 @@ export const lessons = [
   ["bai-10-laplacian-do-thi.md", "graph-laplacians", "Laplacian đồ thị", "L = D − A đo chênh lệch giữa các đỉnh kề nhau; trị riêng đếm số mảnh và cắt đồ thị."],
 ].map(([file, slug, title, description], index) => ({
   file, slug, title, description, number: index + 1,
-  // Publish only PDFs explicitly approved in the initial release.
-  pdfFile: index < 3 ? `mon-02-bai-0${index + 1}-ghi-tay.pdf` : null,
+  // Every lesson of course 2 has a handwritten PDF (lessons 4-10 added 2026-10-17).
+  pdfFile: `mon-02-bai-${String(index + 1).padStart(2, "0")}-ghi-tay.pdf`,
 }));

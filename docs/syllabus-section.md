@@ -10,7 +10,7 @@ Chủ repo muốn mở nhanh giáo trình và PDF ghi tay trên iPad mà không 
 - **Công khai, không đăng nhập** (chủ repo chọn ngày 16/10). Vì vậy chỉ đưa lên những gì chủ repo đã chọn.
 - **Nội dung tiếng Việt** (giữ nguyên giáo trình), nhưng **URL tiếng Anh**: `/syllabus`, `/syllabus/linear-algebra`,
   `/syllabus/linear-algebra/<slug>`. Đổi URL sau khi đã được index thì phải redirect 301.
-- Hiện chỉ có **môn 2 (Đại số tuyến tính), 10 bài**; **3 bài đầu có PDF ghi tay**. Bài 4-10 chưa có PDF.
+- Hiện chỉ có **môn 2 (Đại số tuyến tính), 10 bài, cả 10 bài có PDF ghi tay** (bài 4-10 thêm ngày 2026-10-17).
 - `/notes` giữ nguyên cho bài đúc kết viết tiếng Anh; `/syllabus` là bản đọc giáo trình gốc.
 
 ## 2. Luồng dữ liệu (đọc kỹ phần snapshot)
@@ -70,7 +70,7 @@ Quy ước repo vẫn giữ: **không `git push`** (push `main` tự deploy), kh
 ## 7. Chưa làm / chưa kiểm
 
 - Chưa xem trên iPad thật; mới thử khung nhìn 390, 820 và 1180 px bằng trình duyệt tích hợp.
-- PDF cho bài 4-10; các môn khác; RSS riêng cho giáo trình.
+- Các môn khác; RSS riêng cho giáo trình.
 - `npm audit` (16/10/2026) báo 18 lỗ hổng (1 critical, 15 high). Chúng nằm ở `next` 16.2.6, `eslint-config-next` và
   `wrangler`; không gói nào do mục `/syllabus` thêm vào. Npm báo `next@16.4.2` sửa được mục critical mà không đổi bản chính.
   Chưa nâng cấp vì ngoài phạm vi; nên làm riêng và chạy lại `npm run build`.
